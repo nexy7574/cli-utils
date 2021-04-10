@@ -103,6 +103,9 @@ RemainAfterExit={}
 ExecStart={}
 Restart={}
 RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
 """
 content = content.format(
     description,
