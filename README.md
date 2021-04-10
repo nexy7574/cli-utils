@@ -18,7 +18,7 @@ If you're suddenly getting `SyntaxError`, just upgrade.
 
 |                file               |             command            |                            description                              |
 | --------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
-| [systemd-gen.py](/systemd-gen.py) | runs on it's own, or `python3` | Generates systemd services. Decent customisable, and very fast.     |
+| [systemd-gen.py](/scripts/systemd-gen.py) | runs on it's own, or `python3` | Generates systemd services. Decent customisable, and very fast.     |
 | [test_script.sh](/test_script.sh) | literally a shell script       | Mostly used internally for testing scripts that call other scripts. |
 | [README.md](/README.md)           | `cat README.md`                | Hm. I'm not sure what this is for. I think it shows text.           |
 | [.gitignore](/.gitignore)         | `ed .gitignore`                | Tells git "HEY DON'T UPLOAD ./VENV SINCE IT CONTAINS THE ENTIRE PYTHON LIBRARY" |
