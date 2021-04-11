@@ -13,8 +13,9 @@ def calculateBar(cur: int, total: int = 100, fill: str = "#", empty: str = " ", 
         raise ValueError("Total must be a value of 100.")
     if cur > total and not disable_safety:
         raise ValueError("Current value is too large.")
-    _fill = int((cur/total)*100)
+    _fill = int((cur / total) * 100)
     _pct = _fill * total
-    text = "[{}] {}% ({}/{})".format((fill*_fill + empty*(100-_fill))[:100], str(round((cur/total)*100)),
-                                     cur, total)
+    text = "[{}] {}% ({}/{})".format(
+        (fill * _fill + empty * (100 - _fill))[:100], str(round((cur / total) * 100)), cur, total
+    )
     return text

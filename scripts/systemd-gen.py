@@ -5,15 +5,9 @@ import sys
 types = ["simple", "exec", "forking", "oneshot", "dbus", "notify", "idle"]
 
 
-parser = argparse.ArgumentParser(
-    description="Simple tool to assist with generation of systemd services."
-)
+parser = argparse.ArgumentParser(description="Simple tool to assist with generation of systemd services.")
 parser.add_argument(
-    "--interactive",
-    "-I",
-    action="store_true",
-    help="Whether to do this interactively. Defaults to true.",
-    default=None
+    "--interactive", "-I", action="store_true", help="Whether to do this interactively. Defaults to true.", default=None
 )
 parser.add_argument(
     "--description",
@@ -21,7 +15,7 @@ parser.add_argument(
     action="store",
     help="The description of the service.",
     required=False,
-    default="Automatically generated service via systemd-gen.py"
+    default="Automatically generated service via systemd-gen.py",
 )
 parser.add_argument(
     "--type",
@@ -29,9 +23,9 @@ parser.add_argument(
     action="store",
     choices=types,
     help="The type of service. See https://www.freedesktop.org/software/systemd/man/systemd.service.html for more"
-         " detail.",
+    " detail.",
     required=False,
-    default="simple"
+    default="simple",
 )
 parser.add_argument(
     "--remain-after-exit",
@@ -39,7 +33,7 @@ parser.add_argument(
     action="store_true",
     required=False,
     default=False,
-    help="Whether to consider the service alive if all the processes are dead."
+    help="Whether to consider the service alive if all the processes are dead.",
 )
 parser.add_argument(
     "--exec-path",
@@ -51,16 +45,9 @@ parser.add_argument(
     action="store",
     required=False,
     default=None,
-    help="The command to actually run."
+    help="The command to actually run.",
 )
-parser.add_argument(
-    "--name",
-    "-N",
-    action="store",
-    required=False,
-    default=None,
-    help="The name of the service."
-)
+parser.add_argument("--name", "-N", action="store", required=False, default=None, help="The name of the service.")
 
 args = parser.parse_args()
 
@@ -79,8 +66,9 @@ if args.interactive in [True, None]:
     remain_after_exit = not remain_after_exit.lower().startswith(("y", "1", "t"))
     restart_on_death = input("Should this service be automatically restarted on death? [Y/N]").lower()[0] == "y"
     max_restarts = int(input("If enabled, how many times can this service restart before systemd gives up? "))
-    exec_path = input("What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/"
-                      "thing.py)\n")
+    exec_path = input(
+        "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/" "thing.py)\n"
+    )
 else:
     name = args.name
     description = args.description
@@ -91,8 +79,7 @@ else:
     max_restarts = 10
 
 print("Generating file...")
-content = \
-"""
+content = """
 [Unit]
 Description={}
 StartLimitBurst={}
@@ -113,7 +100,7 @@ content = content.format(
     _type,
     "yes" if remain_after_exit else "no",
     exec_path,
-    "on-failure" if restart_on_death else "no"
+    "on-failure" if restart_on_death else "no",
 )
 
 print("===== BEGIN CONFIGURATION FILE =====")
@@ -127,8 +114,7 @@ if input("Does this look right? [Y/N]\n").lower().startswith("y"):
         print("Unable to write configuration file. Try sudo.")
         sys.exit(1)
     else:
-        print("Finished writing configuration file.\nTo start the service, run "
-              f"\"sudo service {name} start\".")
+        print("Finished writing configuration file.\nTo start the service, run " f'"sudo service {name} start".')
         sys.exit()
 else:
     print("Ok, cancelled.")

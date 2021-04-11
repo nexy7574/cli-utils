@@ -8,10 +8,7 @@ import re
 
 from utils.loader import calculateBar
 
-lineRegex = re.compile(
-    r"^\s+?[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5}).+$",
-    re.IGNORECASE + re.VERBOSE
-)
+lineRegex = re.compile(r"^\s+?[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5}).+$", re.IGNORECASE + re.VERBOSE)
 
 
 print("Detecting UPNP ports...", end="\r")
@@ -43,7 +40,7 @@ while True:
         try:
             values = list(map(int, value.split(" ")))
         except (ValueError, TypeError):
-            print("Invalid argument. Please make sure it is \"PRINT\", or a number/list of numbers.")
+            print('Invalid argument. Please make sure it is "PRINT", or a number/list of numbers.')
         else:
             break
 
