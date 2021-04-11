@@ -24,4 +24,4 @@ If you're suddenly getting `SyntaxError`, just upgrade.
 | [.gitignore](/.gitignore)         | `ed .gitignore`                | Tells git "HEY DON'T UPLOAD ./VENV SINCE IT CONTAINS THE ENTIRE PYTHON LIBRARY" |
 | venv                              | `rm -rf venv`                  | If you got this directory while cloning, the gitignore broke.       |
 | [requirements.txt](/requirements.txt) | `pip install -r requirements.txt` | Just a list of dependencies for the project.                 |
-
+| [upnp-revoker.py](/scripts/upnp-revoker.py) | Same as system-gen           | Allows for bulk-deletion of upnp forwards, wrapping with the upnpc package. |
