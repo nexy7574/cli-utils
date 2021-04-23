@@ -22,7 +22,7 @@ Usage:
 from subprocess import run, PIPE, DEVNULL
 import re
 
-from .utils.loader import calculateBar
+from utils.loader import calculateBar
 
 
 def printPorts(rem):
