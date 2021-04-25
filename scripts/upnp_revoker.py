@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # noinspection PyUnboundLocalVariable
     for entry_id in values:
         print(calculateBar(deleted, len(values), disable_safety=True), end="\r")
-        run(["upnpc", "-d", *removable[entry_id]], stdout=DEVNULL, stderr=DEVNULL)
+        run(["upnpc", "-d", *map(str, removable[entry_id])], stdout=DEVNULL, stderr=DEVNULL, shell=True)
         deleted += 1
         print(calculateBar(deleted, len(values), disable_safety=True), end="\r")
     print()
