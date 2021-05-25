@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import os
+
+if os.geteuid() != 0:
+    print("Warning: Generator is not running as root. It will be unable to create files, only print them to console.", file=sys.stderr)
 
 if __name__ == "__main__":
     types = ["simple", "exec", "forking", "oneshot", "dbus", "notify", "idle"]
+    restart_on = ["always", "on-failure", "on-success", "on-abnormal", "on-abort", "on-watchdog", "no"]
 
     parser = argparse.ArgumentParser(description="Simple tool to assist with generation of systemd services.")
     parser.add_argument(
@@ -88,19 +93,19 @@ if __name__ == "__main__":
 
     print("Generating file...")
     content = """
-    [Unit]
-    Description={}
-    StartLimitBurst={}
-    
-    [Service]
-    Type={}
-    RemainAfterExit={}
-    ExecStart={}
-    Restart={}
-    RestartSec=5s
-    
-    [Install]
-    WantedBy=multi-user.target
+[Unit]
+Description={}
+StartLimitBurst={}
+
+[Service]
+Type={}
+RemainAfterExit={}
+ExecStart={}
+Restart={}
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
     """
     content = content.format(
         description,
@@ -108,7 +113,7 @@ if __name__ == "__main__":
         _type,
         "yes" if remain_after_exit else "no",
         exec_path,
-        "on-failure" if restart_on_death else "no",
+        "always" if restart_on_death else "no",
     )
 
     print("===== BEGIN CONFIGURATION FILE =====")
