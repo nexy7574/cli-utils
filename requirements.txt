@@ -1,3 +1,3 @@
 pytest
-matplotlib
-psutil
+rich
+elevate

@@ -41,10 +41,10 @@ if __name__ == "__main__":
     removable = []
 
     for line in detection.stdout.decode().splitlines():
-        match: re.Match = lineRegex.match(line)
-        if not match:
+        _match: re.Match = lineRegex.match(line)
+        if not _match:
             continue
-        removable.append((int(match.group(2)), match.group(1)))
+        removable.append((int(_match.group(2)), _match.group(1)))
 
     removable.sort(key=lambda g: g[0])
 
