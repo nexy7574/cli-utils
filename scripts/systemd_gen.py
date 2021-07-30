@@ -2,9 +2,27 @@
 import argparse
 import sys
 import os
+try:
+    from rich.console import Console
+    from rich.prompt import Prompt, Confirm
+    from rich.syntax import Syntax
+    console = Console()
+except ImportError:
+    print("Rich is not installed. Please install rich.", file=sys.stderr)
+    sys.exit(4)
+
 
 if os.geteuid() != 0:
-    print("Warning: Generator is not running as root. It will be unable to create files, only print them to console.", file=sys.stderr)
+    try:
+        from elevate import elevate
+        console.log("[gray italics]Attempting to elevate program permissions...[/]")
+        elevate()
+    except ImportError:
+        elevate = None
+        console.log(
+            r"[yellow]\[Warning\][/] Program is not running as root!"
+            r" This will be unable to write your configuration files, only print them."
+        )
 
 if __name__ == "__main__":
     types = ["simple", "exec", "forking", "oneshot", "dbus", "notify", "idle"]
@@ -61,23 +79,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.interactive in [True, None]:
-        if not args.interactive:
-            print(
-                "Did you know you can specify if you want to run this via the command line or not? See `--interactive`."
-            )
         name = input("Please enter a name for this service: ")
         description = input("Please enter a description of this service:\n")
-        while True:
-            _type = input(f"What type is this service? ({', '.join(types)}):\n").lower().strip()
-            if _type not in types:
-                print("Invalid Type '{}' Try again.".format(_type))
-            else:
-                break
-        remain_after_exit = input(
-            "Should this service be considered offline when all of its processes are exited? [Y/N]\n"
+        _type = Prompt.ask(f"What type is this service?", choices=types).lower().strip()
+        remain_after_exit = Confirm.ask(
+            "Should this service be considered offline when all of its processes are exited?", default=True
         )
-        remain_after_exit = not remain_after_exit.lower().startswith(("y", "1", "t"))
-        restart_on_death = input("Should this service be automatically restarted on death? [Y/N]").lower()[0] == "y"
+        restart_on_death = Confirm.ask("Should this service be automatically restarted on death?", default=False)
         max_restarts = int(input("If enabled, how many times can this service restart before systemd gives up? "))
         exec_path = input(
             "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/" "thing.py)\n"
@@ -91,7 +99,7 @@ if __name__ == "__main__":
         restart_on_death = True
         max_restarts = 10
 
-    print("Generating file...")
+    console.log("Generating file...")
     content = """
 [Unit]
 Description={}
@@ -116,19 +124,23 @@ WantedBy=multi-user.target
         "always" if restart_on_death else "no",
     )
 
-    print("===== BEGIN CONFIGURATION FILE =====")
-    print(content)
-    print("=====  END CONFIGURATION FILE  =====")
-    if input("Does this look right? [Y/N]\n").lower().startswith("y"):
+    console.log("===== BEGIN CONFIGURATION FILE =====")
+    console.log(Syntax(content, "toml"))
+    console.log("=====  END CONFIGURATION FILE  =====")
+    if Confirm.ask("Does this configuration look right?"):
         try:
             with open("/etc/systemd/system/{}.service".format(name), "w+") as wfile:
-                wfile.write(content)
-        except PermissionError:
+                console.log("[gray italics]Writing file...[/]")
+                written = wfile.write(content)
+                console.log(f"[gray italics]Wrote {written} bytes to `/etc/systemd/system/{name}.service`.")
+        except PermissionError as e:
+            console.print_exception()
             print("Unable to write configuration file. Try sudo.")
             sys.exit(1)
         else:
-            print("Finished writing configuration file.\nTo start the service, run " f'"sudo service {name} start".')
+            print("Finished writing configuration file.\nTo start the service, run `sudo service {name} start`.")
             sys.exit()
     else:
         print("Ok, cancelled.")
+        console.log("[red dim italics]User cancelled[/]")
         sys.exit(2)
