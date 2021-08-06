@@ -26,24 +26,41 @@ import re
 from rich.console import Console
 from rich.progress import track
 from rich.prompt import Confirm
+from rich.live import Live
+from rich.spinner import Spinner
+from rich.table import Table
+from rich.traceback import install
 
 console = Console()
+install(console=console, extra_lines=5, show_locals=True)
 
 
 def print_ports(rem):
+    t = Table(
+        "ID", "Port", "Protocol"
+    )
     n = 0
     for _port, conn_type in rem:
-        console.print(f"{n}. port={_port}, connection_type={conn_type}")
+        t.add_row(str(n), str(_port), conn_type)
         n += 1
+    console.print(t)
 
 
 if __name__ == "__main__":
     lineRegex = re.compile(r"^\s+?[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5}).+$", re.IGNORECASE + re.VERBOSE)
 
     console.log("Detecting UPNP ports...")
-    start = time.time()
-    detection = run(["upnpc", "-l"], stdout=PIPE, stderr=DEVNULL)
-    end = time.time()
+    with Live(
+        Spinner("aesthetic", "Getting UPnP Port Listings...", speed=.1),
+        transient=True
+    ):
+        start = time.time()
+        try:
+            detection = run(["upnpc", "-l"], stdout=PIPE, stderr=DEVNULL)
+        except KeyboardInterrupt:
+            console.log("Listing cancelled.")
+            sys.exit(1)
+        end = time.time()
 
     if detection.returncode != 0:
         console.log(f"Got return code [red]{detection.returncode}[/] on UPnP List request. Please ensure UPnP is "
@@ -63,8 +80,9 @@ if __name__ == "__main__":
                                                               round(end-start, 2)))
 
     print_ports(removable)
+    values = ...
     while True:
-        value = input("Please enter a number, or list of numbers (separated by space), to revoke: ")
+        value = input("Please enter an, or list of IDs (separated by space), to revoke: ")
         if value == "PRINT":
             print_ports(removable)
             continue
@@ -81,11 +99,18 @@ if __name__ == "__main__":
         else:
             break
 
-    console.log(f"Deleting {len(removable)} ports. ")
+    console.log("Removing ports...")
+    assert values is not ..., "Values is undefined somehow."
+    failed = []
+    for port_id in track(values, description=f"Removing {len(values)} ports", console=console, transient=True):
+        result = run(
+            ["upnpc", "-d", *[str(x) for x in removable[port_id]]],
+            capture_output=True
+        )
+        if result.returncode != 0:
+            failed.append((port_id, result.returncode))
 
-    # According to pylint, `values` can be undefined.
-    # I call BS.
-    # noinspection PyUnboundLocalVariable
-    for entry_id in track(values, description="Deleting specified ports...", console=console):
-        run(["upnpc", "-d", *map(str, removable[entry_id])], stdout=DEVNULL, stderr=DEVNULL, shell=True)
+    for port_id, code in failed:
+        console.log(f"[red]Failed to delete port [b]{port_id}[/]: Got return code {code}.[/]")
+
     console.log("Done!")
