@@ -146,13 +146,13 @@ WantedBy=multi-user.target"""
             sys.exit(1)
         else:
             if Confirm.ask("Would you like to start this service now?"):
-                subprocess.run(f"systemctl start {name}.service")
+                subprocess.run(["systemctl", "start", name+".service"])
             else:
                 console.log(
                     "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`.")
                 sys.exit()
             if Confirm.ask("Would you like to start this service on reboot?"):
-                subprocess.run(f"systemctl enable {name}.service")
+                subprocess.run(["systemctl", "enable", name+".service"])
     else:
         console.log("Ok, cancelled.")
         console.log("[red dim italics]User cancelled[/]")
