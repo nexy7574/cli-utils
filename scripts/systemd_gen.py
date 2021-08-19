@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 import argparse
+import subprocess
 import sys
 import os
+
 try:
     from rich.console import Console
     from rich.prompt import Prompt, Confirm
     from rich.syntax import Syntax
+
     console = Console()
 except ImportError:
     print("Rich is not installed. Please install rich.", file=sys.stderr)
     sys.exit(4)
 
-
-if os.geteuid() != 0:
+if os.getuid() != 0:
     try:
         from elevate import elevate
+
         console.log("[gray italics]Attempting to elevate program permissions...[/]")
         elevate()
     except ImportError:
         elevate = None
         console.log(
-            r"[yellow]\[Warning\][/] Program is not running as root!"
+            r"[yellow][Warning][/] Program is not running as root!"
             r" This will be unable to write your configuration files, only print them."
         )
 
@@ -50,7 +53,7 @@ if __name__ == "__main__":
         action="store",
         choices=types,
         help="The type of service. See https://www.freedesktop.org/software/systemd/man/systemd.service.html for more"
-        " detail.",
+             " detail.",
         required=False,
         default="simple",
     )
@@ -90,6 +93,9 @@ if __name__ == "__main__":
         exec_path = input(
             "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/" "thing.py)\n"
         )
+        requires_network = Confirm.ask(
+            "Should the service wait until network connectivity is established?"
+        )
     else:
         name = args.name
         description = args.description
@@ -98,10 +104,10 @@ if __name__ == "__main__":
         exec_path = args.exec_path
         restart_on_death = True
         max_restarts = 10
+        requires_network = False
 
     console.log("Generating file...")
-    content = """
-[Unit]
+    content = """[Unit]
 Description={}
 StartLimitBurst={}
 
@@ -113,8 +119,7 @@ Restart={}
 RestartSec=5s
 
 [Install]
-WantedBy=multi-user.target
-    """
+WantedBy=multi-user.target"""
     content = content.format(
         description,
         str(max_restarts),
@@ -124,9 +129,11 @@ WantedBy=multi-user.target
         "always" if restart_on_death else "no",
     )
 
-    console.log("===== BEGIN CONFIGURATION FILE =====")
-    console.log(Syntax(content, "toml"))
-    console.log("=====  END CONFIGURATION FILE  =====")
+    if requires_network:
+        content += "\nAfter=network-online.target\nWants=network-online.target"
+    console.print("===== BEGIN CONFIGURATION FILE =====")
+    console.print(Syntax(content, "toml"))
+    console.print("=====  END CONFIGURATION FILE  =====")
     if Confirm.ask("Does this configuration look right?"):
         try:
             with open("/etc/systemd/system/{}.service".format(name), "w+") as wfile:
@@ -135,12 +142,18 @@ WantedBy=multi-user.target
                 console.log(f"[gray italics]Wrote {written} bytes to `/etc/systemd/system/{name}.service`.")
         except PermissionError as e:
             console.print_exception()
-            print("Unable to write configuration file. Try sudo.")
+            console.log("Unable to write configuration file. Try sudo.")
             sys.exit(1)
         else:
-            print("Finished writing configuration file.\nTo start the service, run `sudo service {name} start`.")
-            sys.exit()
+            if Confirm.ask("Would you like to start this service now?"):
+                subprocess.run(f"systemctl start {name}.service")
+            else:
+                console.log(
+                    "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`.")
+                sys.exit()
+            if Confirm.ask("Would you like to start this service on reboot?"):
+                subprocess.run(f"systemctl enable {name}.service")
     else:
-        print("Ok, cancelled.")
+        console.log("Ok, cancelled.")
         console.log("[red dim italics]User cancelled[/]")
         sys.exit(2)
