@@ -53,7 +53,7 @@ if __name__ == "__main__":
         action="store",
         choices=types,
         help="The type of service. See https://www.freedesktop.org/software/systemd/man/systemd.service.html for more"
-             " detail.",
+        " detail.",
         required=False,
         default="simple",
     )
@@ -82,20 +82,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.interactive in [True, None]:
-        name = input("Please enter a name for this service: ")
-        description = input("Please enter a description of this service:\n")
+        name = Prompt.ask("Please enter a name for this service: ")
+        description = Prompt.ask("Please enter a description of this service:\n")
         _type = Prompt.ask(f"What type is this service?", choices=types).lower().strip()
         remain_after_exit = Confirm.ask(
             "Should this service be considered offline when all of its processes are exited?", default=True
         )
         restart_on_death = Confirm.ask("Should this service be automatically restarted on death?", default=False)
-        max_restarts = int(input("If enabled, how many times can this service restart before systemd gives up? "))
-        exec_path = input(
-            "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/" "thing.py)\n"
+        max_restarts = int(Prompt.ask("If enabled, how many times can this service restart before systemd gives up? "))
+        exec_path = Prompt.ask(
+            "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)\n"
         )
-        requires_network = Confirm.ask(
-            "Should the service wait until network connectivity is established?"
-        )
+        requires_network = Confirm.ask("Should the service wait until network connectivity is established?")
     else:
         name = args.name
         description = args.description
@@ -146,13 +144,14 @@ WantedBy=multi-user.target"""
             sys.exit(1)
         else:
             if Confirm.ask("Would you like to start this service now?"):
-                subprocess.run(["systemctl", "start", name+".service"])
+                subprocess.run(["systemctl", "start", name + ".service"])
             else:
                 console.log(
-                    "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`.")
+                    "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`."
+                )
                 sys.exit()
             if Confirm.ask("Would you like to start this service on reboot?"):
-                subprocess.run(["systemctl", "enable", name+".service"])
+                subprocess.run(["systemctl", "enable", name + ".service"])
     else:
         console.log("Ok, cancelled.")
         console.log("[red dim italics]User cancelled[/]")
