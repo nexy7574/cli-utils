@@ -25,6 +25,7 @@ If you're suddenly getting `SyntaxError`, just upgrade.
 | [venv](https://youtu.be/dQw4w9WgXcQ) | `rm -rf venv`                  | If you got this directory while cloning, the gitignore broke.       |
 | [requirements.txt](/requirements.txt) | `pip install -r requirements.txt` | Just a list of dependencies for the project.                 |
 | [upnp_revoker.py](/scripts/upnp_revoker.py) | Same as systemd-gen           | Allows for bulk-deletion of upnp forwards, wrapping with the upnpc package. |
+| [mass-git-updater](/scripts/mass-git-updater/main.py) | `python3 scripts/mass-git-updater` | Recursively searches the provided file path and basically runs `git pull` on all known repos. |
 
 ## Contributing
 Not sure why you would be, but basically just make sure it works, and that it's a modification to a current script.

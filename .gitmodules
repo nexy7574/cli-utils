@@ -1,0 +1,3 @@
+[submodule "scripts/mass-git-updater"]
+	path = scripts/mass-git-updater
+	url = git@github.com:EEKIM10/mass-git-updater
