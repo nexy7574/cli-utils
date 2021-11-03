@@ -7,27 +7,30 @@ internal_port [external_port] protocol
 import subprocess
 import sys
 import time
+from pathlib import Path
 from rich.console import Console
 from rich.progress import track
 from rich.traceback import install
 
 console = Console()
 install(console=console, extra_lines=5, show_locals=True)
+home_dir = Path(__file__).parent
 
 try:
-    with open("./upnpc-redirects.txt") as redirects_raw:
+    with open(home_dir / "upnpc-redirects.txt") as redirects_raw:
         data = redirects_raw.readlines()
 except FileNotFoundError:
-    console.log("No file called 'upnpc-redirects.txt' exists. Please create it.")
+    console.log("No file called 'upnpc-redirects.txt' exists at %s. Please create it." % home_dir)
     sys.exit()
 
 
 def parse_data(l):
-    if len(l.split(" ")) == 3:
-        internal_port, external_port, protocol = l.split(" ")
+    arguments = l.split(" ")
+    if len(arguments) == 3:
+        internal_port, external_port, protocol = arguments
         assert external_port.isdigit(), f"{external_port!r} is not an integer!"
-    elif len(l.split(" ")) == 2:
-        internal_port, protocol = l.split(" ")
+    elif len(arguments) == 2:
+        internal_port, protocol = arguments
     else:
         raise ValueError(f"Too many arguments, got {len(l.split(' '))}, expected 2-3.")
     assert internal_port.isdigit(), f"{internal_port!r} is not an integer!"
@@ -40,6 +43,8 @@ def parse_data(l):
 entries = []
 
 for line_number, line in enumerate(data):
+    if not bool(line) or line.startswith("#"):
+        continue
     try:
         i, e, p = parse_data(line)
     except AssertionError as e:
@@ -54,9 +59,10 @@ for line_number, line in enumerate(data):
             arguments.insert(3, e)
         entries.append(arguments)
 
-for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True):
+for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
         time.sleep(2.5)
         continue
-    subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
+    result = subprocess.run(entry, encoding="utf-8", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if result.returncode != 0:
+        console.log(f"[red]Got status code `{result.returncode}` on command {' '.join(entry)!r}.")
