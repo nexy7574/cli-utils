@@ -45,7 +45,7 @@ def print_ports(rem):
 
 
 if __name__ == "__main__":
-    lineRegex = re.compile(r"^\s+?[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5}).+$", re.IGNORECASE + re.VERBOSE)
+    lineRegex = re.compile(r"^\s*[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5}).+$", re.IGNORECASE + re.VERBOSE)
 
     console.log("Detecting UPNP ports...")
     with Live(Spinner("aesthetic", "Getting UPnP Port Listings...", speed=0.1), transient=True):
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     print_ports(removable)
     values = ...
     while True:
-        value = input("Please enter an, or list of IDs (separated by space), to revoke: ")
+        value = input("Please enter an ID, or list of IDs (separated by space), to revoke: ")
         if value == "PRINT":
             print_ports(removable)
             continue
