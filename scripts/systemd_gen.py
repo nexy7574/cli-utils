@@ -2,6 +2,7 @@
 import argparse
 import subprocess
 import sys
+import pwd
 import os
 
 try:
@@ -26,6 +27,23 @@ if os.getuid() != 0:
             r"[yellow][Warning][/] Program is not running as root!"
             r" This will be unable to write your configuration files, only print them."
         )
+
+
+def generate_unit_file(unit: dict, service: dict, install: dict):
+    unit_section = "[Unit]\n"
+    for key, value in unit.items():
+        unit_section += f"{key}={value}\n"
+
+    service_section = "\n[Service]\n"
+    for key, value in service.items():
+        service_section += f"{key}={value}\n"
+
+    install_section = "\n[Install]\n"
+    for key, value in install.items():
+        install_section += f"{key}={value}\n"
+
+    return unit_section + service_section + install_section
+
 
 if __name__ == "__main__":
     types = ["simple", "exec", "forking", "oneshot", "dbus", "notify", "idle"]
@@ -94,6 +112,21 @@ if __name__ == "__main__":
             "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)\n"
         )
         requires_network = Confirm.ask("Should the service wait until network connectivity is established?")
+        user = None
+        while user is None:
+            user = Prompt.ask("What user should this service run as? (e.g. root, nobody, etc.)", default="default")
+            if user.lower() in ["root", "default", "none", " "]:
+                user = None
+                break
+            else:
+                console.log("Checking user...")
+                try:
+                    pwd.getpwnam(user)
+                except KeyError:
+                    console.log(f"[red]User {user} does not exist![/]")
+                    user = None
+                else:
+                    break
     else:
         name = args.name
         description = args.description
@@ -103,32 +136,35 @@ if __name__ == "__main__":
         restart_on_death = True
         max_restarts = 10
         requires_network = False
+        user = None
 
     console.log("Generating file...")
-    content = """[Unit]
-Description={}
-StartLimitBurst={}
 
-[Service]
-Type={}
-RemainAfterExit={}
-ExecStart={}
-Restart={}
-RestartSec=5s
-
-[Install]
-WantedBy=multi-user.target"""
-    content = content.format(
-        description,
-        str(max_restarts),
-        _type,
-        "yes" if remain_after_exit else "no",
-        exec_path,
-        "always" if restart_on_death else "no",
-    )
+    # data
+    unit = {
+        "Description": description,
+    }
+    if max_restarts:
+        unit["StartLimitBurst"] = str(max_restarts)
 
     if requires_network:
-        content += "\nAfter=network-online.target\nWants=network-online.target"
+        unit["Wants"] = "network-online.target"
+        unit["After"] = "network.target network-online.target"
+
+    service = {
+        "Type": _type,
+        "RemainAfterExit": "yes" if remain_after_exit else "no",
+        "ExecStart": exec_path,
+    }
+    if restart_on_death:
+        service["Restart"] = "always"
+        service["RestartSec"] = "5"
+
+    install = {
+        "WantedBy": "multi-user.target",
+    }
+
+    content = generate_unit_file(unit, service, install)
     console.print("===== BEGIN CONFIGURATION FILE =====")
     console.print(Syntax(content, "toml"))
     console.print("=====  END CONFIGURATION FILE  =====")
