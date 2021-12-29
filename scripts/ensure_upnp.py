@@ -7,14 +7,32 @@ internal_port [external_port] protocol
 import subprocess
 import sys
 import time
+import os
 from pathlib import Path
 from rich.console import Console
 from rich.progress import track
 from rich.traceback import install
+from rich.prompt import IntPrompt
 
 console = Console()
+console.log("Interactive terminal." if sys.__stdin__.isatty() else "Non-interactive terminal.")
 install(console=console, extra_lines=5, show_locals=True)
 home_dir = Path(__file__).parent
+
+ip_addrs = subprocess.run(("hostname", "-i"), capture_output=True, check=True, encoding="utf-8")
+ip_addrs = ip_addrs.stdout.split(" ")
+our_ip = os.getenv("IP", None)
+
+if our_ip is None:
+    if len(ip_addrs) > 1 and sys.__stdin__.isatty() is True:
+        console.print("Which internal IP would you like to use to receive upnp traffic?")
+        for i, ip_addr in enumerate(ip_addrs):
+            console.print(f"{i}: {ip_addr}")
+        our_ip = ip_addrs[IntPrompt.ask("> ", choices=list(range(len(ip_addrs))))]
+    else:
+        our_ip = ip_addrs[0]
+
+console.log("Forwarding traffic to %s." % our_ip)
 
 try:
     with open(home_dir / "upnpc-redirects.txt") as redirects_raw:
@@ -24,21 +42,27 @@ except FileNotFoundError:
     sys.exit()
 
 
-def parse_data(l):
-    arguments = l.split(" ")
-    if len(arguments) == 3:
-        internal_port, external_port, protocol = arguments
+# NOTE: Some of the following code has been taken from my in-house modification of this script
+# and consequently may not work properly on all systems.
+def parse_data(l, *, force_protocol: str = ...):
+    if l.startswith("#") or not line.strip():  # comment or whitespace line
+        return ..., ..., ...
+    if len(l.split(" ")) == 3:
+        internal_port, external_port, protocol = l.split(" ")
         assert external_port.isdigit(), f"{external_port!r} is not an integer!"
-    elif len(arguments) == 2:
-        internal_port, protocol = arguments
+    elif len(l.split(" ")) == 2:
+        internal_port, protocol = l.split(" ")
     else:
         raise ValueError(f"Too many arguments, got {len(l.split(' '))}, expected 2-3.")
+    if force_protocol is not ...:
+        protocol = force_protocol
     assert internal_port.isdigit(), f"{internal_port!r} is not an integer!"
-    assert protocol.lower().strip() in ("tcp", "udp"), f"{protocol!r} is not TCP or UDP."
+    assert protocol.lower().strip() in ("tcp", "udp", "both"), f"{protocol!r} is not TCP, UDP, or BOTH."
     try:
         return internal_port, external_port, protocol.lower().strip()
     except NameError:  # duck typing gang
         return internal_port, ..., protocol.lower().strip()
+
 
 entries = []
 
@@ -54,15 +78,13 @@ for line_number, line in enumerate(data):
     except Exception as e:
         console.log(f"[red bright]Fatal exception while parsing line {line_number+1}: `{e!s}`[/]")
     else:
-        arguments = ["upnpc", "-r", i, p]
-        if e is not ...:
-            arguments.insert(3, e)
+        arguments = ["upnpc", "-a", our_ip, i, i if e is ... else e, p]
         entries.append(arguments)
 
 for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
         time.sleep(2.5)
         continue
-    result = subprocess.run(entry, encoding="utf-8", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
         console.log(f"[red]Got status code `{result.returncode}` on command {' '.join(entry)!r}.")

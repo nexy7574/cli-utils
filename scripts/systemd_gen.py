@@ -11,22 +11,9 @@ try:
     from rich.syntax import Syntax
 
     console = Console()
-except ImportError:
+except ImportError as e:
     print("Rich is not installed. Please install rich.", file=sys.stderr)
     sys.exit(4)
-
-if os.getuid() != 0:
-    try:
-        from elevate import elevate
-
-        console.log("[gray italics]Attempting to elevate program permissions...[/]")
-        elevate()
-    except ImportError:
-        elevate = None
-        console.log(
-            r"[yellow][Warning][/] Program is not running as root!"
-            r" This will be unable to write your configuration files, only print them."
-        )
 
 
 def generate_unit_file(unit: dict, service: dict, install: dict):
@@ -96,8 +83,22 @@ if __name__ == "__main__":
         help="The command to actually run.",
     )
     parser.add_argument("--name", "-N", action="store", required=False, default=None, help="The name of the service.")
+    parser.add_argument("--user", action="store_true", help="If true, this will stop the script elevating itself.", default=False)
 
     args = parser.parse_args()
+
+    if os.getuid() != 0 and args.user is False:
+        try:
+            from elevate import elevate
+
+            console.log("[gray italics]Attempting to elevate program permissions...[/]")
+            elevate()
+        except ImportError:
+            elevate = None
+            console.log(
+                r"[yellow][Warning][/] Program is not running as root!"
+                r" This will be unable to write your configuration files, only print them."
+            )
 
     if args.interactive in [True, None]:
         name = Prompt.ask("Please enter a name for this service: ")
@@ -159,6 +160,9 @@ if __name__ == "__main__":
     if restart_on_death:
         service["Restart"] = "always"
         service["RestartSec"] = "5"
+    
+    if user is not None:
+        service["User"] = user
 
     install = {
         "WantedBy": "multi-user.target",

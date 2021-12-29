@@ -36,16 +36,19 @@ install(console=console, extra_lines=5, show_locals=True)
 
 
 def print_ports(rem):
-    t = Table("ID", "Port", "Protocol")
+    t = Table("ID", "Port", "Protocol", "Connection Target")
     n = 0
-    for _port, conn_type in rem:
-        t.add_row(str(n), str(_port), conn_type)
+    for _port, conn_type, ext in rem:
+        t.add_row(str(n), str(_port), conn_type, ext)
         n += 1
     console.print(t)
 
 
 if __name__ == "__main__":
-    lineRegex = re.compile(r"^\s*[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5}).+$", re.IGNORECASE + re.VERBOSE)
+    lineRegex = re.compile(
+        r"^\s*[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5})->(?P<ext>[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,5}).+$",
+        re.IGNORECASE + re.VERBOSE,
+    )
 
     console.log("Detecting UPNP ports...")
     with Live(Spinner("aesthetic", "Getting UPnP Port Listings...", speed=0.1), transient=True):
@@ -70,7 +73,7 @@ if __name__ == "__main__":
         _match: re.Match = lineRegex.match(line)
         if not _match:
             continue
-        removable.append((int(_match.group(2)), _match.group(1)))
+        removable.append((int(_match.group("port")), _match.group(1), _match.group("ext")))
 
     removable.sort(key=lambda g: g[0])
     console.log(
@@ -91,13 +94,16 @@ if __name__ == "__main__":
                 values = list(range(len(removable)))
                 break
             continue
-        try:
-            values = list(map(int, value.split(" ")))
-        except (ValueError, TypeError):
-            console.log("[red]Invalid argument[/]. Please make sure it is `PRINT`, `ALL`, or a number/list of numbers.")
-            continue
+        if re.match(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", value):
+            values = [x[0] for x in removable if x[2] == value]
         else:
-            break
+            try:
+                values = list(map(int, value.split(" ")))
+            except (ValueError, TypeError):
+                console.log("[red]Invalid argument[/]. Please make sure it is `PRINT`, `ALL`, an IP, or a number/list of numbers.")
+                continue
+            else:
+                break
 
     console.log("Removing ports...")
     assert values is not ..., "Values is undefined somehow."
