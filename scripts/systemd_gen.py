@@ -110,7 +110,7 @@ if __name__ == "__main__":
         restart_on_death = Confirm.ask("Should this service be automatically restarted on death?", default=False)
         max_restarts = 0
         if restart_on_death:
-            max_restarts = IntPrompt.ask("If enabled, how many times can this service restart before systemd gives up? "))
+            max_restarts = IntPrompt.ask("If enabled, how many times can this service restart before systemd gives up?")
         exec_path = Prompt.ask(
             "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)\n"
         )
