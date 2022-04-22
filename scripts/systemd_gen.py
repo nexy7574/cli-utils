@@ -7,7 +7,7 @@ import os
 
 try:
     from rich.console import Console
-    from rich.prompt import Prompt, Confirm
+    from rich.prompt import Prompt, IntPrompt, Confirm
     from rich.syntax import Syntax
 
     console = Console()
@@ -101,14 +101,16 @@ if __name__ == "__main__":
             )
 
     if args.interactive in [True, None]:
-        name = Prompt.ask("Please enter a name for this service: ")
-        description = Prompt.ask("Please enter a description of this service:\n")
+        name = Prompt.ask("Please enter a name for this service")
+        description = Prompt.ask("Please enter a description of this service")
         _type = Prompt.ask(f"What type is this service?", choices=types).lower().strip()
         remain_after_exit = Confirm.ask(
             "Should this service be considered offline when all of its processes are exited?", default=True
         )
         restart_on_death = Confirm.ask("Should this service be automatically restarted on death?", default=False)
-        max_restarts = int(Prompt.ask("If enabled, how many times can this service restart before systemd gives up? "))
+        max_restarts = 0
+        if restart_on_death:
+            max_restarts = IntPrompt.ask("If enabled, how many times can this service restart before systemd gives up? "))
         exec_path = Prompt.ask(
             "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)\n"
         )
@@ -181,17 +183,20 @@ if __name__ == "__main__":
         except PermissionError as e:
             console.print_exception()
             console.log("Unable to write configuration file. Try sudo.")
+            with open("./{}.service".format(name), "w+") as wfile:
+                wfile.write(content)
+            console.log(f"Wrote service file to './{name}.service'. You can do `sudo mv {name}.service /etc/systemd/system/{name}.service` to move it.")
             sys.exit(1)
         else:
             if Confirm.ask("Would you like to start this service now?"):
-                subprocess.run(["systemctl", "start", name + ".service"])
+                subprocess.run(["systemctl", "start", name + ".service"], check=True)
             else:
                 console.log(
                     "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`."
                 )
                 sys.exit()
             if Confirm.ask("Would you like to start this service on reboot?"):
-                subprocess.run(["systemctl", "enable", name + ".service"])
+                subprocess.run(["systemctl", "enable", name + ".service"], check=True)
     else:
         console.log("Ok, cancelled.")
         console.log("[red dim italics]User cancelled[/]")
