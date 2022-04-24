@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import os
+import random
 from pathlib import Path
 from rich.console import Console
 from rich.progress import track
@@ -100,7 +101,7 @@ for line_number, line in enumerate(data):
 for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
         print("Running", "{!r}".format(" ".join(entry)))
-        time.sleep(1)
+        time.sleep(random.randint(5, 20) / 10)
         continue
     result = subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
