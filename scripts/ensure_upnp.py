@@ -73,6 +73,8 @@ for line_number, line in enumerate(data):
         continue
     try:
         i, e, p = parse_data(line)
+        assert i is not ...
+        assert p is not ...
     except AssertionError as e:
         console.log(f"Invalid argument on line {line_number+1}: [red bright]`{e!s}`[/]")
     except ValueError as e:
