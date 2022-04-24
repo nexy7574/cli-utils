@@ -80,8 +80,20 @@ for line_number, line in enumerate(data):
     except Exception as e:
         console.log(f"[red bright]Fatal exception while parsing line {line_number+1}: `{e!s}`[/]")
     else:
-        arguments = ["upnpc", "-a", our_ip, i, i if e is ... else e, p]
-        entries.append(arguments)
+        arguments = ["upnpc", "-a", our_ip, i]
+        if e is ...:
+            arguments.append(i)
+        else:
+            arguments.append(e)
+        
+        if p == "both":
+            arguments.append("tcp")
+            entries.append(arguments)
+            arguments[-1] = "udp"
+            entries.append(arguments)
+        else:
+            arguments.append(p)
+            entries.append(arguments)
 
 for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
