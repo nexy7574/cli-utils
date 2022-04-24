@@ -90,12 +90,12 @@ for line_number, line in enumerate(data):
         
         if p == "both":
             arguments.append("tcp")
-            entries.append(arguments)
+            entries.append(arguments.copy())
             arguments[-1] = "udp"
-            entries.append(arguments)
+            entries.append(arguments.copy())
         else:
             arguments.append(p)
-            entries.append(arguments)
+            entries.append(arguments.copy())
 
 for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
