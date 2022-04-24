@@ -32,6 +32,8 @@ if our_ip is None:
     else:
         our_ip = ip_addrs[0]
 
+our_ip = our_ip.strip()
+
 console.log("Forwarding traffic to %s." % our_ip)
 
 try:
@@ -83,7 +85,7 @@ for line_number, line in enumerate(data):
 
 for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
-        time.sleep(2.5)
+        time.sleep(2)
         continue
     result = subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
