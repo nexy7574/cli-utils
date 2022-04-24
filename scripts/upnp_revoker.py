@@ -85,7 +85,7 @@ if __name__ == "__main__":
     print_ports(removable)
     values = ...
     while True:
-        value = input("Please enter an ID, or list of IDs (separated by space), to revoke: ")
+        value = input("Please enter an ID, an IP, or list of IDs (separated by space), to revoke: ")
         if value == "PRINT":
             print_ports(removable)
             continue
@@ -95,7 +95,9 @@ if __name__ == "__main__":
                 break
             continue
         if re.match(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", value):
+            console.log("IP matching...")
             values = [x[0] for x in removable if x[2] == value]
+            console.log("Found {!s} ports matching that IP".format(len(values)))
         else:
             try:
                 values = list(map(int, value.split(" ")))
