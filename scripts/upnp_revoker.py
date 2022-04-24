@@ -95,8 +95,8 @@ if __name__ == "__main__":
                 break
             continue
         if re.match(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", value):
-            console.log("IP matching...")
-            values = [x[0] for x in removable if x[2] == value]
+            console.log(f"IP matching {value!r}...")
+            values = [x[0] for x in removable if x[-1].strip() == value.strip()]
             console.log("Found {!s} ports matching that IP".format(len(values)))
         else:
             try:
