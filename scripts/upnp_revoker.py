@@ -96,6 +96,7 @@ if __name__ == "__main__":
             continue
         if re.match(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", value):
             values = [x[0] for x in removable if x[-1].split(":")[0].strip() == value.strip()]
+            break
         else:
             try:
                 values = list(map(int, value.split(" ")))
