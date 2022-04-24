@@ -99,7 +99,8 @@ for line_number, line in enumerate(data):
 
 for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
-        time.sleep(2)
+        print("Running", "{!r}".format(" ".join(entry)))
+        time.sleep(1)
         continue
     result = subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
