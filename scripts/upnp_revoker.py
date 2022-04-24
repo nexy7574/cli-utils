@@ -96,6 +96,11 @@ if __name__ == "__main__":
             continue
         if re.match(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", value):
             console.log(f"IP matching {value!r}...")
+            values = []
+            for x, y, z in removable:
+                matches = z == value
+                console.log("{!r} ({!r}) matches {!r}: {!s}".format(value x, z, matches))
+                values.append(x[0])
             values = [x[0] for x in removable if x[-1].strip() == value.strip()]
             console.log("Found {!s} ports matching that IP".format(len(values)))
         else:
