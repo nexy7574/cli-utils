@@ -54,6 +54,7 @@ if "--dry" not in sys.argv:
                 else:
                     console.log(f"[debug] Adding ports {int_port}, {ext_port} to {ip}")
                     existing_map[ip].union({int_port, ext_port})
+    console.log(existing_map)
     console.log(f"Logged {len(existing_map)} IP ports with {sum(len(existing_map[x]) for x in existing_map.keys())}"
                 f" used ports.")
 
