@@ -46,7 +46,7 @@ def print_ports(rem):
 
 if __name__ == "__main__":
     lineRegex = re.compile(
-        r"^\s*[0-9]+\s(TCP|UDP)\s+(?P<port>[0-9]{1,5})->(?P<ext>[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,5}).+$",
+        r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
         re.IGNORECASE + re.VERBOSE,
     )
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
                 values = list(range(len(removable)))
                 break
             continue
-        if re.match(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", value):
+        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", value):
             values = [x[0] for x in removable if x[-1].split(":")[0].strip() == value.strip()]
             break
         else:
