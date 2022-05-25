@@ -4,6 +4,7 @@ It reads a list configuration file to forward, with the below syntax:
 
 internal_port [external_port] protocol
 """
+import re
 import subprocess
 import sys
 import time
@@ -11,6 +12,8 @@ import os
 import random
 import socket
 from pathlib import Path
+from typing import Dict
+
 from rich.console import Console
 from rich.progress import track
 from rich.traceback import install
@@ -32,6 +35,26 @@ try:
 except FileNotFoundError:
     console.log("No file called 'upnpc-redirects.txt' exists at %s. Please create it." % home_dir)
     sys.exit()
+
+existing_map: Dict[str, set] = {}
+
+if "--dry" not in sys.argv:
+    lineRegex = re.compile(
+        r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
+        re.IGNORECASE + re.VERBOSE,
+    )
+    with console.status("Fetching existing UPNP entries"):
+        result = subprocess.run(("upnpc", "-L"), capture_output=True, encoding="utf-8")
+        for line in result.stdout.splitlines():
+            if lineMatch := lineRegex.match(line):
+                ip, ext_port = lineMatch.group("ext").split(":")
+                int_port = lineMatch.group("port")
+                if ip not in existing_map.keys():
+                    existing_map[ip] = {int_port, ext_port}
+                else:
+                    existing_map[ip].union({int_port, ext_port})
+    console.log(f"Logged {len(existing_map)} IP ports with {sum(len(existing_map[x]) for x in existing_map.keys())}"
+                f" used ports.")
 
 
 # NOTE: Some of the following code has been taken from my in-house modification of this script
@@ -67,6 +90,15 @@ for line_number, line in enumerate(data):
             continue  # empty or comment line
         assert i is not ...
         assert p is not ...
+        for ip_addr, ports in existing_map.items():
+            if e and e in ports:
+                try:
+                    hostname = socket.gethostbyaddr(ip_addr)
+                except socket.herror:
+                    hostname = "%s-unknown-hostname" % ip_addr
+                console.log(f"External port {e} is [red]already in use[/] by {ip_addr} ({hostname}). Ignoring.")
+                # In the future we will have the option to automatically override
+                continue
     except AssertionError as e:
         console.log(f"Invalid argument on line {line_number+1}: [red bright]`{e!s}`[/]")
     except ValueError as e:
