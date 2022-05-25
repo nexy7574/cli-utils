@@ -9,6 +9,7 @@ import sys
 import time
 import os
 import random
+import socket
 from pathlib import Path
 from rich.console import Console
 from rich.progress import track
@@ -20,20 +21,8 @@ console.log("Interactive terminal." if sys.__stdin__.isatty() else "Non-interact
 install(console=console, extra_lines=5, show_locals=True)
 home_dir = Path(__file__).parent
 
-ip_addrs = subprocess.run(("hostname", "-i"), capture_output=True, check=True, encoding="utf-8")
-ip_addrs = ip_addrs.stdout.split(" ")
-our_ip = os.getenv("IP", None)
 
-if our_ip is None:
-    if len(ip_addrs) > 1 and sys.__stdin__.isatty() is True:
-        console.print("Which internal IP would you like to use to receive upnp traffic?")
-        for i, ip_addr in enumerate(ip_addrs):
-            console.print(f"{i}: {ip_addr}")
-        our_ip = ip_addrs[IntPrompt.ask("> ", choices=list(range(len(ip_addrs))))]
-    else:
-        our_ip = ip_addrs[0]
-
-our_ip = our_ip.strip()
+our_ip = os.getenv("IP", socket.gethostbyname(socket.gethostname()))
 
 console.log("Forwarding traffic to %s." % our_ip)
 
@@ -74,6 +63,8 @@ for line_number, line in enumerate(data):
         continue
     try:
         i, e, p = parse_data(line)
+        if i is ... and e is ... and p is ...:
+            continue  # empty or comment line
         assert i is not ...
         assert p is not ...
     except AssertionError as e:
@@ -100,7 +91,7 @@ for line_number, line in enumerate(data):
 
 for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
     if "--dry" in sys.argv:
-        print("Running", "{!r}".format(" ".join(entry)))
+        console.print("Running", "{!r}".format(" ".join(entry)))
         time.sleep(random.randint(5, 20) / 10)
         continue
     result = subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
