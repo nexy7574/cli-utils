@@ -21,11 +21,10 @@ from rich.prompt import IntPrompt
 
 console = Console()
 console.log("Interactive terminal." if sys.__stdin__.isatty() else "Non-interactive terminal.")
-# install(console=console, extra_lines=3, show_locals=True)
 home_dir = Path(__file__).parent
 
 
-our_ip = os.getenv("IP", socket.gethostbyname(socket.gethostname()) + ".local")
+our_ip = os.getenv("IP", socket.gethostbyname(socket.gethostname() + ".local"))
 
 console.log("Forwarding traffic to %s." % our_ip)
 
