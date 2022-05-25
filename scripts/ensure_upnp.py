@@ -48,9 +48,11 @@ if "--dry" not in sys.argv:
             if lineMatch := lineRegex.match(line):
                 ip, ext_port = lineMatch.group("ext").split(":")
                 int_port = lineMatch.group("port")
-                if ip not in existing_map.keys():
+                if not existing_map.get(ip):
+                    console.log(f"[debug] Settings ports {int_port}, {ext_port} for {ip}")
                     existing_map[ip] = {int_port, ext_port}
                 else:
+                    console.log(f"[debug] Adding ports {int_port}, {ext_port} to {ip}")
                     existing_map[ip].union({int_port, ext_port})
     console.log(f"Logged {len(existing_map)} IP ports with {sum(len(existing_map[x]) for x in existing_map.keys())}"
                 f" used ports.")
