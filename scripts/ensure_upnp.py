@@ -42,8 +42,12 @@ if "--dry" not in sys.argv:
         r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
         re.IGNORECASE + re.VERBOSE,
     )
-    with console.status("Fetching existing UPNP entries"):
+    with console.status("Fetching existing UPNP entries", spinner="bouncingBall") as status:
         result = subprocess.run(("upnpc", "-L"), capture_output=True, encoding="utf-8")
+        if "(Invalid Action)" in result.stdout:
+            # Doesn't have support for IGD:2
+            status.update("Fetching existing UPNP ports (IGD:2 unavailable)")
+            result = subprocess.run(("upnpc", "-l"), capture_output=True, encoding="utf-8")
         for line in result.stdout.splitlines():
             if lineMatch := lineRegex.match(line):
                 ip, ext_port = lineMatch.group("ext").split(":")
@@ -58,21 +62,22 @@ if "--dry" not in sys.argv:
 
 # NOTE: Some of the following code has been taken from my in-house modification of this script
 # and consequently may not work properly on all systems.
-def parse_data(l, *, force_protocol: str = ...):
-    if l.startswith("#") or not line.strip():  # comment or whitespace line
+def parse_data(_line, *, force_protocol: str = ...):
+    if _line.startswith("#") or not line.strip():  # comment or whitespace line
         return ..., ..., ...
-    if len(l.split(" ")) == 3:
-        internal_port, external_port, protocol = l.split(" ")
+    if len(_line.split(" ")) == 3:
+        internal_port, external_port, protocol = _line.split(" ")
         assert external_port.isdigit(), f"{external_port!r} is not an integer!"
-    elif len(l.split(" ")) == 2:
-        internal_port, protocol = l.split(" ")
+    elif len(_line.split(" ")) == 2:
+        internal_port, protocol = _line.split(" ")
     else:
-        raise ValueError(f"Too many arguments, got {len(l.split(' '))}, expected 2-3.")
+        raise ValueError(f"Too many arguments, got {len(_line.split(' '))}, expected 2-3.")
     if force_protocol is not ...:
         protocol = force_protocol
     assert internal_port.isdigit(), f"{internal_port!r} is not an integer!"
     assert protocol.lower().strip() in ("tcp", "udp", "both"), f"{protocol!r} is not TCP, UDP, or BOTH."
     try:
+        # noinspection PyUnboundLocalVariable
         return internal_port, external_port, protocol.lower().strip()
     except NameError:  # duck typing gang
         return internal_port, ..., protocol.lower().strip()
