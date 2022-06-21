@@ -17,8 +17,6 @@ from typing import Dict
 
 from rich.console import Console
 from rich.progress import track
-from rich.traceback import install
-from rich.prompt import IntPrompt
 
 console = Console()
 console.log("Interactive terminal." if sys.__stdin__.isatty() else "Non-interactive terminal.")
@@ -86,7 +84,7 @@ if "--dry" not in sys.argv:
         r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
         re.IGNORECASE + re.VERBOSE,
     )
-    with console.status("Fetching existing UPNP entries", spinner="bouncingBall", refresh_per_second=4) as status:
+    with console.status("Fetching existing UPNP entries", spinner="bouncingBall") as status:
         result = subprocess.run(("upnpc", "-L"), capture_output=True, encoding="utf-8")
         if "(Invalid Action)" in result.stdout:
             # Doesn't have support for IGD:2
