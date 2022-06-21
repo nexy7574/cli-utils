@@ -7,6 +7,7 @@ internal_port [external_port] protocol
 import re
 import subprocess
 import sys
+import textwrap
 import time
 import os
 import random
@@ -27,13 +28,56 @@ home_dir = Path(__file__).parent
 our_ip = os.getenv("IP", socket.gethostbyname(socket.gethostname() + ".local"))
 
 console.log("Forwarding traffic to %s." % our_ip)
+file = home_dir / "upnpc-redirects.txt"
+if not file.exists():
+    cfg = Path.home() / ".config" / "cli-utils"
+    cfg.mkdir(exist_ok=True, parents=True)
+    example_txt = textwrap.dedent(
+        """
+        # Example configuration file
+        # The format for this file is: internal_port [external_port?] protocol
+        #
+        # Protocol can be any of the following (case insensitive):
+        # * TCP
+        # * UDP
+        # * BOTH (creates two rules for TCP and UDP()
+        #
+        # Internal port must be the port that your service is listening to on this machine
+        # External port may be excluded, and if not provided, defaults to internal_port
+        #
+        # For example:
+        # 22 2222 TCP  -> Forwards whatever service is on localhost:22 to your_public_ip:2222
+        # 80 tcp  -> Forwards whatever service is on localhost:80 to your_public_ip:80
+        # You can also specify a rule multiple times (but be careful not to overlap)
+        # 80 8080 tcp
+        # 80 80 tcp
+        # 80 8000 tcp
+        # All of those redirect localhost:80 to public:[80/8080/8000]
+        """
+    )
+    file = cfg / "upnpc-redirects.txt"
+    if not file.exists():
+        file.write_text(example_txt)
+        console.log(f"No config file found. Please edit {file.absolute()}.")
+        sys.exit()
 
 try:
-    with open(home_dir / "upnpc-redirects.txt") as redirects_raw:
+    with file.open() as redirects_raw:
         data = redirects_raw.readlines()
 except FileNotFoundError:
-    console.log("No file called 'upnpc-redirects.txt' exists at %s. Please create it." % home_dir)
-    sys.exit()
+    if "--dry" not in sys.argv:
+        console.log("No file called 'upnpc-redirects.txt' exists at %s. Please create it." % home_dir)
+        sys.exit()
+    else:
+        data = [
+            "22 both",
+            "200 tcp",
+            "80 tcp",
+            "443 tcp",
+            "8080 tcp",
+            "2222 tcp",
+            "6969 udp"
+        ]
 
 existing_map: Dict[str, set] = {}
 
@@ -42,7 +86,7 @@ if "--dry" not in sys.argv:
         r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
         re.IGNORECASE + re.VERBOSE,
     )
-    with console.status("Fetching existing UPNP entries", spinner="bouncingBall") as status:
+    with console.status("Fetching existing UPNP entries", spinner="bouncingBall", refresh_per_second=4) as status:
         result = subprocess.run(("upnpc", "-L"), capture_output=True, encoding="utf-8")
         if "(Invalid Action)" in result.stdout:
             # Doesn't have support for IGD:2
