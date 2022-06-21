@@ -18,20 +18,24 @@ Usage:
 4. Once the script has finished, it'll say done. You should also make sure it successfully did this by
    running "upnpc -l" yourself.
 """
+import socket
 import sys
 import time
-from subprocess import run, PIPE, DEVNULL
+import os
+from subprocess import run
 import re
+from socket import gethostbyaddr
 
 from rich.console import Console
 from rich.progress import track
 from rich.prompt import Confirm
-from rich.live import Live
-from rich.spinner import Spinner
 from rich.table import Table
 from rich.traceback import install
 
 console = Console()
+if os.name == "nt":
+    console.print("This tool is not supported on windows.")
+    sys.exit(1)
 install(console=console, extra_lines=5, show_locals=True)
 
 
@@ -39,7 +43,12 @@ def print_ports(rem):
     t = Table("ID", "Port", "Protocol", "Connection Target")
     n = 0
     for _port, conn_type, ext in rem:
-        t.add_row(str(n), str(_port), conn_type, ext)
+        ip, extp = ext.split(":")
+        try:
+            ext2 = "%s:%s (%s)" % (gethostbyaddr(ip), extp, ext)
+        except socket.herror:
+            ext2 = ext
+        t.add_row(str(n), str(_port), conn_type, ext2)
         n += 1
     console.print(t)
 
@@ -51,13 +60,17 @@ if __name__ == "__main__":
     )
 
     console.log("Detecting UPNP ports...")
-    with Live(Spinner("aesthetic", "Getting UPnP Port Listings...", speed=0.1), transient=True):
+    with console.status("Getting UPnP Port Listings", spinner="bouncingBall") as status:
         start = time.time()
         try:
-            detection = run(["upnpc", "-l"], stdout=PIPE, stderr=DEVNULL)
+            detection = run(("upnpc", "-L"), capture_output=True, encoding="utf-8")
         except KeyboardInterrupt:
             console.log("Listing cancelled.")
             sys.exit(1)
+        if "(Invalid Action)" in detection.stdout:
+            # Doesn't have support for IGD:2
+            status.update("Fetching existing UPNP ports (IGD:2 unavailable)")
+            result = run(("upnpc", "-l"), capture_output=True, encoding="utf-8")
         end = time.time()
 
     if detection.returncode != 0:
@@ -69,7 +82,7 @@ if __name__ == "__main__":
 
     removable = []
 
-    for line in detection.stdout.decode().splitlines():
+    for line in detection.stdout.splitlines():
         _match: re.Match = lineRegex.match(line)
         if not _match:
             continue
@@ -101,7 +114,8 @@ if __name__ == "__main__":
             try:
                 values = list(map(int, value.split(" ")))
             except (ValueError, TypeError):
-                console.log("[red]Invalid argument[/]. Please make sure it is `PRINT`, `ALL`, an IP, or a number/list of numbers.")
+                console.log("[red]Invalid argument[/]. Please make sure it is `PRINT`, `ALL`, an IP, or a number/list "
+                            "of numbers.")
                 continue
             else:
                 break
