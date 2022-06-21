@@ -31,8 +31,7 @@ if not file.exists():
     cfg = Path.home() / ".config" / "cli-utils"
     cfg.mkdir(exist_ok=True, parents=True)
     example_txt = textwrap.dedent(
-        """
-        # Example configuration file
+        """# Example configuration file
         # The format for this file is: internal_port [external_port?] protocol
         #
         # Protocol can be any of the following (case insensitive):
@@ -50,8 +49,7 @@ if not file.exists():
         # 80 8080 tcp
         # 80 80 tcp
         # 80 8000 tcp
-        # All of those redirect localhost:80 to public:[80/8080/8000]
-        """
+        # All of those redirect localhost:80 to public:[80/8080/8000]"""
     )
     file = cfg / "upnpc-redirects.txt"
     if not file.exists():
