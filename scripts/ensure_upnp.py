@@ -65,15 +65,7 @@ except FileNotFoundError:
         console.log("No file called 'upnpc-redirects.txt' exists at %s. Please create it." % home_dir)
         sys.exit()
     else:
-        data = [
-            "22 both",
-            "200 tcp",
-            "80 tcp",
-            "443 tcp",
-            "8080 tcp",
-            "2222 tcp",
-            "6969 udp"
-        ]
+        data = ["22 both", "200 tcp", "80 tcp", "443 tcp", "8080 tcp", "2222 tcp", "6969 udp"]
 
 existing_map: Dict[str, set] = {}
 
@@ -96,8 +88,10 @@ if "--dry" not in sys.argv:
                     existing_map[ip] = {int_port, ext_port}
                 else:
                     existing_map[ip].update({int_port, ext_port})
-    console.log(f"Logged {len(existing_map)} IP ports with {sum(len(existing_map[x]) for x in existing_map.keys())}"
-                f" used ports.")
+    console.log(
+        f"Logged {len(existing_map)} IP ports with {sum(len(existing_map[x]) for x in existing_map.keys())}"
+        f" used ports."
+    )
 
 
 # NOTE: Some of the following code has been taken from my in-house modification of this script
@@ -155,7 +149,7 @@ for line_number, line in enumerate(data):
             arguments.append(i)
         else:
             arguments.append(e)
-        
+
         if p == "both":
             arguments.append("tcp")
             entries.append(arguments.copy())
@@ -170,6 +164,8 @@ for entry in track(entries, description=f"Forwarding {len(entries)} ports.", tra
         console.print("Running", "{!r}".format(" ".join(entry)))
         time.sleep(random.randint(5, 20) / 10)
         continue
+    if not sys.__stdout__.isatty():
+        console.log("Running %r" % " ".join(entry))
     result = subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
         console.log(f"[red]Got status code `{result.returncode}` on command {' '.join(entry)!r}.")
