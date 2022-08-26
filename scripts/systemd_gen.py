@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import getpass
 import subprocess
 import sys
 import pwd
@@ -83,7 +84,9 @@ if __name__ == "__main__":
         help="The command to actually run.",
     )
     parser.add_argument("--name", "-N", action="store", required=False, default=None, help="The name of the service.")
-    parser.add_argument("--user", action="store_true", help="If true, this will stop the script elevating itself.", default=False)
+    parser.add_argument(
+        "--user", action="store_true", help="If true, this will stop the script elevating itself.", default=False
+    )
 
     args = parser.parse_args()
 
@@ -108,16 +111,21 @@ if __name__ == "__main__":
             "Should this service be considered offline when all of its processes are exited?", default=True
         )
         restart_on_death = Confirm.ask("Should this service be automatically restarted on death?", default=False)
-        max_restarts = 0
+        max_restarts = time_between_restarts = 0
         if restart_on_death:
-            max_restarts = IntPrompt.ask("If enabled, how many times can this service restart before systemd gives up?")
+            max_restarts = IntPrompt.ask("How many times can this service restart before systemd gives up?")
+            time_between_restarts = IntPrompt.ask(
+                "How long, in seconds, should systemd wait before automatically restarting the service?",
+                default=5
+            )
         exec_path = Prompt.ask(
             "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)\n"
         )
         requires_network = Confirm.ask("Should the service wait until network connectivity is established?")
         user = None
         while user is None:
-            user = Prompt.ask("What user should this service run as? (e.g. root, nobody, etc.)", default="default")
+            user = Prompt.ask("What user should this service run as? (e.g. root, default, nobody, etc.)",
+                              default=getpass.getuser())
             if user.lower() in ["root", "default", "none", " "]:
                 user = None
                 break
@@ -139,7 +147,8 @@ if __name__ == "__main__":
         restart_on_death = True
         max_restarts = 10
         requires_network = False
-        user = None
+        user = getpass.getuser()
+        time_between_restarts = 0
 
     console.log("Generating file...")
 
@@ -156,13 +165,13 @@ if __name__ == "__main__":
 
     service = {
         "Type": _type,
-        "RemainAfterExit": "yes" if remain_after_exit else "no",
+        "RemainAfterExit": "no",
         "ExecStart": exec_path,
     }
     if restart_on_death:
         service["Restart"] = "always"
-        service["RestartSec"] = "5"
-    
+        service["RestartSec"] = str(time_between_restarts)
+
     if user is not None:
         service["User"] = user
 
@@ -172,7 +181,7 @@ if __name__ == "__main__":
 
     content = generate_unit_file(unit, service, install)
     console.print("===== BEGIN CONFIGURATION FILE =====")
-    console.print(Syntax(content, "toml"))
+    console.print(Syntax(content, "toml", line_numbers=True, indent_guides=True))
     console.print("=====  END CONFIGURATION FILE  =====")
     if Confirm.ask("Does this configuration look right?"):
         try:
@@ -185,7 +194,10 @@ if __name__ == "__main__":
             console.log("Unable to write configuration file. Try sudo.")
             with open("./{}.service".format(name), "w+") as wfile:
                 wfile.write(content)
-            console.log(f"Wrote service file to './{name}.service'. You can do `sudo mv {name}.service /etc/systemd/system/{name}.service` to move it.")
+            console.log(
+                f"Wrote service file to './{name}.service'. You can do `sudo mv {name}.service "
+                f"/etc/systemd/system/{name}.service` to move it."
+            )
             sys.exit(1)
         else:
             if Confirm.ask("Would you like to start this service now?"):
