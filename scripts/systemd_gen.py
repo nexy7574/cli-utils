@@ -119,7 +119,7 @@ if __name__ == "__main__":
                 default=5
             )
         exec_path = Prompt.ask(
-            "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)\n"
+            "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)"
         )
         requires_network = Confirm.ask("Should the service wait until network connectivity is established?")
         user = None
@@ -201,14 +201,20 @@ if __name__ == "__main__":
             sys.exit(1)
         else:
             if Confirm.ask("Would you like to start this service now?"):
-                subprocess.run(["systemctl", "start", name + ".service"], check=True)
+                try:
+                    subprocess.run(["systemctl", "start", name + ".service"], check=True)
+                except subprocess.SubprocessError:
+                    console.log("[red]Failed to start service! Check journal.")
             else:
                 console.log(
                     "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`."
                 )
                 sys.exit()
             if Confirm.ask("Would you like to start this service on reboot?"):
-                subprocess.run(["systemctl", "enable", name + ".service"], check=True)
+                try:
+                    subprocess.run(["systemctl", "enable", name + ".service"], check=True)
+                except subprocess.SubprocessError:
+                    console.log("[red]Failed to enable service! Check journal.")
     else:
         console.log("Ok, cancelled.")
         console.log("[red dim italics]User cancelled[/]")
