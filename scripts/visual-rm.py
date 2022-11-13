@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from rich import get_console
 from rich.prompt import Prompt
@@ -7,6 +8,10 @@ from rich.progress import Progress
 deleted_files = deleted_directories = found_files = found_directories = 0
 failed_files = failed_directories = 0
 root = None
+if len(sys.argv) == 2:
+    root = Path(sys.argv[1])
+    if not root.exists() or root.is_file():
+        root = None
 console = get_console()
 
 while root is None:
