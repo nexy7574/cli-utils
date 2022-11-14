@@ -115,8 +115,10 @@ def main():
             try:
                 values = list(map(int, value.split(" ")))
             except (ValueError, TypeError):
-                console.log("[red]Invalid argument[/]. Please make sure it is `PRINT`, `ALL`, an IP, or a number/list "
-                            "of numbers.")
+                console.log(
+                    "[red]Invalid argument[/]. Please make sure it is `PRINT`, `ALL`, an IP, or a number/list "
+                    "of numbers."
+                )
                 continue
             else:
                 break

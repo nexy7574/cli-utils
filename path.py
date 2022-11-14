@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
-text = \
-"""
+
+text = """
 This script is now deprecated.
 Please install cli-utils with the following command, and get all of the scripts on your path automatically:
 

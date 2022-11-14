@@ -24,7 +24,6 @@ def main():
     console.log("Interactive terminal." if sys.__stdin__.isatty() else "Non-interactive terminal.")
     home_dir = Path(__file__).parent
 
-
     our_ip = os.getenv("IP", socket.gethostbyname(socket.gethostname() + ".local"))
 
     console.log("Forwarding traffic to %s." % our_ip)
@@ -95,7 +94,6 @@ def main():
             f" used ports."
         )
 
-
     # NOTE: Some of the following code has been taken from my in-house modification of this script
     # and consequently may not work properly on all systems.
     def parse_data(_line, *, force_protocol: str = ...):
@@ -117,7 +115,6 @@ def main():
             return internal_port, external_port, protocol.lower().strip()
         except NameError:  # duck typing gang
             return internal_port, ..., protocol.lower().strip()
-
 
     entries = []
 

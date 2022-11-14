@@ -59,8 +59,7 @@ def main():
     if restart_on_death:
         max_restarts = IntPrompt.ask("How many times can this service restart before systemd gives up?")
         time_between_restarts = IntPrompt.ask(
-            "How long, in seconds, should systemd wait before automatically restarting the service?",
-            default=5
+            "How long, in seconds, should systemd wait before automatically restarting the service?", default=5
         )
     exec_path = Prompt.ask(
         "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)"
@@ -68,8 +67,9 @@ def main():
     requires_network = Confirm.ask("Should the service wait until network connectivity is established?")
     user = None
     while user is None:
-        user = Prompt.ask("What user should this service run as? (e.g. root, default, nobody, etc.)",
-                          default=getpass.getuser())
+        user = Prompt.ask(
+            "What user should this service run as? (e.g. root, default, nobody, etc.)", default=getpass.getuser()
+        )
         if user.lower() in ["root", "default", "none", " "]:
             user = None
             break

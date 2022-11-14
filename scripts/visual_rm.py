@@ -17,8 +17,9 @@ console = get_console()
 
 try:
     if os.getuid() != 0:
-        console.log("[yellow bold]You are not root. Some files and directories may not be able to be"
-                    " indexed or deleted.[/]")
+        console.log(
+            "[yellow bold]You are not root. Some files and directories may not be able to be" " indexed or deleted.[/]"
+        )
 except AttributeError:
     pass
 
@@ -79,10 +80,7 @@ def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
             root = path
 
     while root is None:
-        p = Prompt.ask(
-            "Root directory",
-            console=console
-        )
+        p = Prompt.ask("Root directory", console=console)
         _p_r = Path(p)
         if _p_r.exists() is False:
             console.log("[red]Directory not found.")
@@ -96,8 +94,8 @@ def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
             os.walk(
                 root,
                 topdown=False,
-                onerror=lambda err: console.log('[red]:warning: Warning while walking: ' + repr(err)),
-                followlinks=False
+                onerror=lambda err: console.log("[red]:warning: Warning while walking: " + repr(err)),
+                followlinks=False,
             )
         )
         status.update("Counting files and directories")
@@ -108,10 +106,7 @@ def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
     if not yes:
         sure = Confirm.ask(
             "Are you sure you want to delete {:,} things ({:,} files and {:,} directories) from {!s}?".format(
-                found_files + found_directories,
-                found_files,
-                found_directories,
-                root.absolute()
+                found_files + found_directories, found_files, found_directories, root.absolute()
             )
         )
         if not sure:
@@ -121,18 +116,8 @@ def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
     columns = list(Progress.get_default_columns())
     columns.insert(0, SpinnerColumn("bouncingBall"))
     columns.insert(-1, MofNCompleteColumn())
-    columns.insert(
-        -2,
-        TextColumn(
-            "[bold blue]{task.fields[threads]:,}thr"
-        )
-    )
-    columns.insert(
-        -2,
-        TextColumn(
-            "[bold gold]{task.fields[per_sec]}"
-        )
-    )
+    columns.insert(-2, TextColumn("[bold blue]{task.fields[threads]:,}thr"))
+    columns.insert(-2, TextColumn("[bold gold]{task.fields[per_sec]}"))
     with Progress(*columns, console=console, expand=True) as progress:
         start = time.time()
         task = progress.add_task(
@@ -140,7 +125,7 @@ def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
             total=found_directories + found_files,
             deleted=0,
             threads=0,
-            per_sec=per_second(deleted_files + deleted_directories, start)
+            per_sec=per_second(deleted_files + deleted_directories, start),
         )
         for _root, subdirectories, files in tree:
             updater = partial(
@@ -149,7 +134,7 @@ def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
                 advance=1,
                 threads=len(threads),
                 deleted=deleted_directories + deleted_files,
-                per_sec=per_second(deleted_files + deleted_directories, start)
+                per_sec=per_second(deleted_files + deleted_directories, start),
             )
 
             for file in files:
