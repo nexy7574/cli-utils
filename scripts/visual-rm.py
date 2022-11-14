@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import sys
 import click
@@ -9,30 +10,35 @@ from rich import get_console
 from rich.prompt import Prompt, Confirm
 from rich.progress import Progress, track, TextColumn, SpinnerColumn, MofNCompleteColumn
 
-deleted_files = deleted_directories = found_files = found_directories = 0
-failed_files = failed_directories = 0
+deleted_files = deleted_directories = found_files = found_directories = failed_files = failed_directories = 0
 root = None
 threads = []
-if len(sys.argv) == 2:
-    root = Path(sys.argv[1])
-    if not root.exists() or root.is_file():
-        root = None
 console = get_console()
 
 
-def remove(_path: Path, callback: callable, dry: bool) -> bool:
+try:
+    if os.getuid() != 0:
+        console.log("[yellow bold]You are not root. Some files and directories may not be able to be"
+                    " indexed or deleted.[/]")
+except AttributeError:
+    pass
+
+
+def remove(_path: Path, callback: callable, dry: bool, quiet: bool) -> bool:
     global deleted_directories, deleted_files, failed_directories, failed_files
     try:
         if _path.is_dir():
             if not dry:
                 _path.rmdir()
             deleted_directories += 1
-            console.log(f"[green]Removed directory {_path!s}.")
+            if not quiet:
+                console.log(f"[green]Removed directory {_path!s}.")
         else:
             if not dry:
                 _path.unlink(missing_ok=True)
             deleted_files += 1
-            console.log(f"[green]Removed file {_path!s}.")
+            if not quiet:
+                console.log(f"[green]Removed file {_path!s}.")
         return True
     except (IOError, OSError) as err:
         console.log(f"[red]Error removing {_path}: {err}")
@@ -49,8 +55,8 @@ def per_second(value: int, start: float) -> str:
     return f"{value / (time.time() - start):.0f}/s"
 
 
-def start_thread(_path: Path, callback: callable, dry: bool):
-    t = Thread(target=remove, args=(_path, callback, dry))
+def start_thread(_path: Path, callback: callable, dry: bool, quiet: bool):
+    t = Thread(target=remove, args=(_path, callback, dry, quiet))
     t.start()
     threads.append(t)
     return t
@@ -58,11 +64,15 @@ def start_thread(_path: Path, callback: callable, dry: bool):
 
 # noinspection DuplicatedCode
 @click.command()
-@click.option("--dry", is_flag=True, help="Dry run, don't actually remove anything.")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt.")
-@click.option("--no-threads", is_flag=True, help="Don't use threads (may be slower).")
+@click.option("-d", "--dry", is_flag=True, help="Dry run, don't actually remove anything.")
+@click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt.")
+@click.option("-n", "--no-threads", is_flag=True, help="Don't use threads (may be slower).")
+@click.option("-q", "--quiet", is_flag=True, help="Don't print anything other than the progress bar.")
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=None)
-def main(dry: bool, yes: bool, no_threads: bool, path: str = None):
+def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
+    """Visually remove files and directories with verbose logging and rich progress information.
+
+    Note that the built-in `rm` is much faster and more reliable than this program."""
     global root, found_files, found_directories
     if path is not None:
         path = Path(path)
@@ -87,7 +97,7 @@ def main(dry: bool, yes: bool, no_threads: bool, path: str = None):
             os.walk(
                 root,
                 topdown=False,
-                onerror=lambda err: console.log('[red]Error walking: ' + repr(err)),
+                onerror=lambda err: console.log('[red]:warning: Warning while walking: ' + repr(err)),
                 followlinks=False
             )
         )
@@ -147,11 +157,11 @@ def main(dry: bool, yes: bool, no_threads: bool, path: str = None):
                 path = Path(_root) / file
                 while True:
                     if no_threads:
-                        remove(path, updater, dry)
+                        remove(path, updater, dry, quiet)
                         break
                     else:
                         try:
-                            start_thread(path, updater, dry)
+                            start_thread(path, updater, dry, quiet)
                             time.sleep(0)
                             progress.refresh()
                         except RuntimeError:
@@ -166,11 +176,11 @@ def main(dry: bool, yes: bool, no_threads: bool, path: str = None):
                 path = Path(_root) / directory
                 while True:
                     if no_threads:
-                        remove(path, updater, dry)
+                        remove(path, updater, dry, quiet)
                         break
                     else:
                         try:
-                            start_thread(path, updater, dry)
+                            start_thread(path, updater, dry, quiet)
                             time.sleep(0)
                             progress.refresh()
                         except RuntimeError:
