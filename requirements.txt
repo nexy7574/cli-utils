@@ -1,4 +1,4 @@
-pytest
-rich
-elevate
-userpath
+pytest==7.2.0
+rich==12.6.0
+elevate==0.1.3
+click==8.1.3
