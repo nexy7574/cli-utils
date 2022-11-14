@@ -19,6 +19,7 @@ setup(
     author_email="",
     description="A set of CLI tools that I use",
     install_requires=requirements,
+    python_requires=">=3.9",
     entry_points={
         "console_scripts": [
             "ensure-upnp = scripts.ensure_upnp:main",

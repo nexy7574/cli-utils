@@ -14,6 +14,27 @@ however python3.8+ is recommended (since these are written in 3.9)
 
 If you're suddenly getting `SyntaxError`, just upgrade.
 
+## Installing (the right way)
+Previously, it was recommended to just add [scripts](/scripts) to your PATH.
+This is no longer the case.
+
+You can now install these scripts using `pipx`:
+
+```bash
+$ pipx install git+https://github.com/EEKIM10/cli-utils
+```
+
+<detail>
+<summary>If you don't have pipx:</summary>
+
+```bash
+$ pip install pipx
+$ python3 -m pipx ensurepath
+```
+</detail>
+
+> Note: In order to install scripts properly, pip(x) requires that you have python 3.9 or newer.
+
 ## What each tool is
 
 |                file               |             command            |                            description                              |
