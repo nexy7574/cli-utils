@@ -53,7 +53,8 @@ def print_ports(rem):
     console.print(t)
 
 
-if __name__ == "__main__":
+# noinspection PyPep8Naming
+def main():
     lineRegex = re.compile(
         r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
         re.IGNORECASE + re.VERBOSE,
@@ -132,3 +133,13 @@ if __name__ == "__main__":
         console.log(f"[red]Failed to delete port [b]{port_id}[/]: Got return code {code}.[/]")
 
     console.log("Done!")
+
+
+if __name__ == "__main__":
+    try:
+        run(("upnpc", "--help"), capture_output=True)
+    except FileNotFoundError:
+        console.print("upnpc is not installed. Please install it (usually with a package called `miniupnpc`.")
+        sys.exit(1)
+    else:
+        main()
