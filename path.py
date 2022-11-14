@@ -1,27 +1,19 @@
 #!/usr/bin/env python
+import sys
+text = \
 """
-This simple meta script just adds the `script` directory to path.
+This script is now deprecated.
+Please install cli-utils with the following command, and get all of the scripts on your path automatically:
+
+    pipx install git+https://github.com/EEKIM10/cli-utils.git
+
+===========================================================================================================
+
+If you don't have pipx installed, you can install it with the following command:
+
+    pip install pipx
+
+~nex
 """
-import userpath
-from rich.console import Console
-from pathlib import Path
-
-us = Path(__file__)
-scripts_dir = (us / ".." / "scripts").resolve()
-scripts = str(scripts_dir)
-console = Console()
-print = console.print
-
-with console.status("Checking if scripts directory is in path") as status:
-    if not userpath.in_current_path(scripts):
-        status.update("Adding scripts directory to path")
-        userpath.append(scripts)
-        status.update("Checking if scripts directory is now in path")
-        if userpath.in_new_path(scripts):
-            print("Added scripts directory to path.")
-    else:
-        print("Scripts directory is already in path.")
-
-    status.update("Checking if shell needs restarting")
-    if userpath.need_shell_restart(scripts):
-        print("You need to restart your shell for this to take effect.")
+print(text, file=sys.stderr)
+sys.exit(1)  # non-zero exit code in case someone's using this in a shell script for whatever reason
