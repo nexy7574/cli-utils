@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import os
+import subprocess
+
 import click
 import time
 from threading import Thread
@@ -24,6 +26,11 @@ except AttributeError:
     pass
 
 
+def log_if_not_quiet(message: str, quiet: bool):
+    if not quiet:
+        console.log(message)
+
+
 def remove(_path: Path, callback: callable, dry: bool, quiet: bool) -> bool:
     global deleted_directories, deleted_files, failed_directories, failed_files
     try:
@@ -31,17 +38,25 @@ def remove(_path: Path, callback: callable, dry: bool, quiet: bool) -> bool:
             if not dry:
                 _path.rmdir()
             deleted_directories += 1
-            if not quiet:
-                console.log(f"[green]Removed directory {_path!s}.")
+            log_if_not_quiet(f"[green]Removed directory {_path!s}.", quiet)
         else:
             if not dry:
                 _path.unlink(missing_ok=True)
             deleted_files += 1
-            if not quiet:
-                console.log(f"[green]Removed file {_path!s}.")
+            log_if_not_quiet(f"[green]Removed file {_path!s}.", quiet)
         return True
-    except (IOError, OSError) as err:
-        console.log(f"[red]Error removing {_path}: {err}")
+    except OSError as err:
+        if err.errno == 20:
+            log_if_not_quiet(f"[yellow]Detected wrong file type for {_path!s} - trying absolute removal.", quiet)
+            try:
+                command = ["rm", "-f"] if os.name != "nt" else ["del", "/f"]
+                subprocess.run((*command, str(_path.absolute())), check=True)
+            except subprocess.CalledProcessError:
+                pass
+            else:
+                log_if_not_quiet(f"[green]Removed object {_path!s}.", quiet)
+                return True
+        console.log(f"[red]Error removing {_path}: {err}", quiet)
         if _path.is_dir():
             failed_directories += 1
         else:
