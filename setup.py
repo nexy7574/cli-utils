@@ -17,7 +17,7 @@ setup(
     license="GNU General Public License v3.0",
     author="nex",
     author_email="",
-    description="A set of CLI tools that I use",
+    description="A set of CLI tools that I use.",
     install_requires=requirements,
     python_requires=">=3.9",
     entry_points={
@@ -28,6 +28,7 @@ setup(
             "revoke-upnp = scripts.upnp_revoker:main",
             "visual-rm = scripts.visual_rm:main",
             "vrm = scripts.visual_rm:main",
+            "hashgen = scripts.hashgen:main",
         ]
     },
 )
