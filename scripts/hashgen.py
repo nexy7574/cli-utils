@@ -207,13 +207,13 @@ def main(
                         "Multi-threaded, from disk",
                         f"~{proc_used_ram_mb + 100 * len(hashes_to_gen):,}MiB",
                         f"{free_gb:,}GiB",
-                        _yn[proc_used_ram < free_ram]
+                        _yn[proc_used_ram + 100 * len(hashes_to_gen) < free_ram]
                     )
                     table.add_row(
                         "Single-threaded, from disk",
                         f"~{proc_used_ram_mb + 100:,}MiB",
                         f"{free_gb:,}GiB",
-                        _yn[size < free_ram]
+                        _yn[proc_used_ram + 100 < free_ram]
                     )
                     console.print(table)
                     console.print(
