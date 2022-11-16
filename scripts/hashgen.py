@@ -102,7 +102,10 @@ def main(
     chunk_size = block_size * 1024
     console = get_console()
     hashes_to_gen = {"md5": md5, "sha1": sha1, "sha224": sha224, "sha256": sha256, "sha384": sha384, "sha512": sha512}
-    generated_hashes = {}
+    generated_hashes = {"md5": None, "sha1": None, "sha224": None, "sha256": None, "sha384": None, "sha512": None}
+    [generated_hashes.update({k: "incomplete"}) for k in hashes_to_gen.keys() if hashes_to_gen[k]]
+    [generated_hashes.pop(k) for k in hashes_to_gen.keys() if not hashes_to_gen[k]]
+
     if not any(hashes_to_gen.values()):
         console.print("No hash types specified. Exiting.")
         return
