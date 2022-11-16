@@ -1,3 +1,5 @@
+import copy
+
 from rich import get_console
 from rich.progress import (
     Progress,
@@ -71,7 +73,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     "--single",
     is_flag=True,
     default=False,
-    help="Forces single-thread behaviour. May be slower than multi-threaded.",
+    help="Forces single-thread behaviour. May be slower than multi-threaded, but lighter on RAM.",
 )
 @click.option("--block-size", "--bs", default=1024, help="Block size for hashing (in KiB).", type=click.INT)
 @click.option("--md5", is_flag=True, default=False, help="Use MD5 hashing algorithm.")
@@ -196,9 +198,10 @@ def main(
         if multi_core:
             threads = []
             for hash_name in hashes_to_gen.keys():
+                buffer_copy = copy.copy(buffer)
                 thread = Thread(
                     target=lambda: generated_hashes.update(
-                        {hash_name: generate_hash(buffer, hash_name, tasks[hash_name], progress, chunk_size)}
+                        {hash_name: generate_hash(buffer_copy, hash_name, tasks[hash_name], progress, chunk_size)}
                     )
                 )
                 thread.start()
@@ -208,6 +211,7 @@ def main(
         else:
             for hash_name in hashes_to_gen.keys():
                 generated_hashes[hash_name] = generate_hash(buffer, hash_name, tasks[hash_name], progress, chunk_size)
+                buffer.seek(0)
 
     console.log(f"Hashes for {path}:")
     for hash_name, hash_value in generated_hashes.items():
