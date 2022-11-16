@@ -11,6 +11,8 @@ from rich.progress import (
     TotalFileSizeColumn,
     TransferSpeedColumn,
 )
+from rich.table import Table
+from rich.prompt import Confirm
 import hashlib
 import click
 from pathlib import Path
@@ -143,16 +145,81 @@ def main(
 
     if not no_ram:
         free_ram = psutil.virtual_memory().available
-        if size is not None and size > free_ram:
-            console.print(
-                f"[red]:warning: File is larger than available RAM. Disabling RAM caching (reading straight from disk)."
-            )
-            no_ram = True
-        elif size is None:
+        file_mb = round(size / 1024 / 1024)
+        file_gb = round(size / 1024 / 1024 / 1024)
+        free_gb = round(free_ram / 1024 / 1024 / 1024)
+        if size is None:
             console.print(
                 f"[red]:warning: File size is unknown as reading from stdin. If the file is larger than available"
-                f" free RAM ({free_ram:,} bytes), this may cause issues."
+                f" free RAM ({free_gb:,}GiB), this may cause issues."
             )
+        else:
+            resolved_size = size * len(hashes_to_gen)
+            if resolved_size >= free_ram:
+                resolved_gb = round(resolved_size / 1024 / 1024 / 1024)
+
+                switched_to_single = False
+
+                console.print(
+                    f"[red]:warning: File ({file_mb:,}MiB, {resolved_gb:,}GiB for {len(hashes_to_gen)} threads)"
+                    f" is larger than available free RAM ({free_ram:,} bytes)."
+                )
+
+                if size < free_ram:
+                    console.print(
+                        "[yellow]Multihashing can still take place via RAM if the program runs single threaded.\n"
+                        "Single threaded multi-hashing is slower, as it only processes one hash at a time, however"
+                        " as it is reading from RAM, is still faster than multi-hashing from direct disk.\n"
+                        "Your options here are to either *switch to single thread hashing*, or *switch to direct disk*."
+                    )
+                    if Confirm.ask("Continue with single-threaded hashing? (if not, will switch to direct disk)"):
+                        multi_core = False
+                        switched_to_single = True
+
+                if not switched_to_single:
+                    table = Table(title="RAM Requirements for this multi-hash")
+                    table.add_column("Type", justify="left")
+                    table.add_column("RAM Required", justify="center")
+                    table.add_column("RAM Available", justify="center")
+                    table.add_column("Sufficient?", justify="center")
+                    yes = "\N{white heavy check mark}"
+                    no = "\N{cross mark}"
+                    _yn = {
+                        True: yes,
+                        False: no,
+                    }
+
+                    table.add_row(
+                        "Multi-threaded, from RAM",
+                        f"{resolved_gb:,}GiB",
+                        f"{free_gb:,}GiB",
+                        _yn[resolved_size < free_ram]
+                    )
+                    table.add_row(
+                        "Single-threaded, from RAM",
+                        f"{file_gb:,}GiB",
+                        f"{free_gb:,}GiB",
+                        _yn[size < free_ram]
+                    )
+                    table.add_row(
+                        "Multi-threaded, from disk",
+                        f"{file_gb:,}GiB",
+                        f"{free_gb:,}GiB",
+                        _yn[size < free_ram]
+                    )
+                    table.add_row(
+                        "Single-threaded, from disk",
+                        f"{file_gb:,}GiB",
+                        f"{free_gb:,}GiB",
+                        _yn[size < free_ram]
+                    )
+                    console.print(table)
+                    console.print(
+                        "[yellow]Caching to RAM is disabled. Consider using a smaller file, "
+                        "or switching to single-threaded hashing. Direct disk causes high IO wait on slow disks, and"
+                        " is overall significantly slower than RAM cached."
+                    )
+                    no_ram = True
 
     if len(hashes_to_gen) == 1:
         multi_core = False
