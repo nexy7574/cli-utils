@@ -50,6 +50,10 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
         if kill:
             progress.stop_task(task)
             del hash_obj
+            progress.update(
+                task,
+                description=f"Generating {name} hash (Cancelled)"
+            )
             return "cancelled"
         hash_obj.update(chunk)
         progress.update(task, advance=len(chunk))
@@ -92,12 +96,19 @@ def main(
     """Generates a hash for a specified file.
 
     This tool is most useful for generating hashes of large files, as it includes progress."""
+    global kill
     _fn = file
     multi_core = not single_thread
     if os.name != "nt" and multi_core:
 
         def signal_handler(*_):
             global kill
+            for _task in progress.tasks:
+                if _task.completed != _task.total:
+                    progress.update(
+                        _task.id,
+                        description=_task.description + " (Cancelling)"
+                    )
             kill = True
             console.print("Interrupt handled, stopping threads.")
 
@@ -164,6 +175,11 @@ def main(
             _t = 0
             buffer = BytesIO()
             for block in iter(lambda: file.read(chunk_size), b""):
+                if kill:
+                    del buffer
+                    progress.update(task, description="Loading file into ram (cancelled)")
+                    progress.stop_task(task)
+                    return
                 buffer.write(block)
                 _t += len(block)
                 progress.update(task, advance=len(block))
