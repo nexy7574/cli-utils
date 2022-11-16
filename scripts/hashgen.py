@@ -205,7 +205,7 @@ def main(
                     )
                     table.add_row(
                         "Multi-threaded, from disk",
-                        f"~{proc_used_ram_mb + 100:,}MiB",
+                        f"~{proc_used_ram_mb + 100 * len(hashes_to_gen):,}MiB",
                         f"{free_gb:,}GiB",
                         _yn[proc_used_ram < free_ram]
                     )
