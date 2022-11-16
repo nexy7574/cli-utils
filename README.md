@@ -24,29 +24,26 @@ You can now install these scripts using `pipx`:
 $ pipx install git+https://github.com/EEKIM10/cli-utils
 ```
 
-<detail>
+<details markdown="1">
 <summary>If you don't have pipx:</summary>
 
 ```bash
 $ pip install pipx
 $ python3 -m pipx ensurepath
 ```
-</detail>
+</details>
 
 > Note: In order to install scripts properly, pip(x) requires that you have python 3.9 or newer.
 
 ## What each tool is
 
-|                file               |             command            |                            description                              |
-| --------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
-| [systemd_gen.py](/scripts/systemd_gen.py) | runs on it's own, or `python3` | Generates systemd services. Decent customisable, and very fast.     |
-| [test_script.sh](/test_script.sh) | literally a shell script       | Mostly used internally for testing scripts that call other scripts. |
-| [README.md](/README.md)           | `cat README.md`                | Hm. I'm not sure what this is for. I think it shows text.           |
-| [.gitignore](/.gitignore)         | `ed .gitignore`                | Tells git "HEY DON'T UPLOAD ./VENV SINCE IT CONTAINS THE ENTIRE PYTHON LIBRARY" |
-| [venv](https://youtu.be/dQw4w9WgXcQ) | `rm -rf venv`                  | If you got this directory while cloning, the gitignore broke.       |
-| [requirements.txt](/requirements.txt) | `pip install -r requirements.txt` | Just a list of dependencies for the project.                 |
-| [upnp_revoker.py](/scripts/upnp_revoker.py) | Same as systemd-gen           | Allows for bulk-deletion of upnp forwards, wrapping with the upnpc package. |
-| [mass-git-updater](/scripts/mass-git-updater/main.py) | `python3 scripts/mass-git-updater` | Recursively searches the provided file path and basically runs `git pull` on all known repos. |
+| file | command | version | description |
+| ---- | ------- | ------- | ----------- |
+| [ensure_upnp.py](/scripts/ensure_upnp.py) | `ensure-upnp` | python 3.9+ | Simple script designed to be run by a crontab to mass-forward upnp ports |
+| [hashgen.py](/scripts/hashgen.py) | `hashgen` | python 3.9+ | A custom tool to generate file hashes. Shows progress for large files & supports simultaneous hashing |
+| [systemd_gen.py](/scripts/systemd_gen.py) | `systemd-gen` | python 3.9+ | Program to create systemd unit files. |
+| [upnp_revoker.py](/scripts/upnp_revoker.py) | `revoke-upnp`, `upnp-revoker` | python 3.9+ | The reverse of ensure_upnp - lists all forwarded upnp ports in a nice little table with bulk-unforwarding |
+| [visual_rm.py](/scripts/visual_rm.py) | `vrm`, `visual-rm` | python 3.9+ | Used for mass-deleting files by recursively removing their directories. Provides a nice progress display with an ETA. |
 
 ## Contributing
 Not sure why you would be, but basically just make sure it works, and that it's a modification to a current script.

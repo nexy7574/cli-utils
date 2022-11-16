@@ -221,6 +221,9 @@ def main(
                         "or switching to single-threaded hashing. Direct disk causes high IO wait on slow disks, and"
                         " is overall significantly slower than RAM cached."
                     )
+                    console.print(
+                        "[yellow]For more information: https://gist.github.com/EEKIM10/4677140e36a528243fa277091954adcb"
+                    )
                     no_ram = True
 
     if len(hashes_to_gen) == 1:
