@@ -141,7 +141,9 @@ if __name__ == "__main__":
     try:
         run(("upnpc", "--help"), capture_output=True)
     except FileNotFoundError:
-        console.print("upnpc is not installed. Please install it (usually with a package called `miniupnpc`.")
+        console.print(
+            "upnpc is not installed. Please install it (usually with a package called `miniupnpc` on most systems)."
+        )
         sys.exit(1)
     else:
         main()
