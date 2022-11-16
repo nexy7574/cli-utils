@@ -145,7 +145,7 @@ def main(
 
     if not no_ram:
         free_ram = psutil.virtual_memory().available
-        proc_used_ram = psutil.Process().oneshot().memory_info().vms
+        proc_used_ram = psutil.Process().memory_info().vms
         proc_used_ram_mb = round(proc_used__ram / 1024 / 1024)
         file_mb = round(size / 1024 / 1024)
         file_gb = round(size / 1024 / 1024 / 1024)
