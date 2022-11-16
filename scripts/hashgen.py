@@ -198,11 +198,14 @@ def main(
         if multi_core:
             threads = []
             for hash_name in hashes_to_gen.keys():
-                buffer_copy = copy.copy(buffer)
+                if not no_ram:
+                    buffer_copy = copy.copy(buffer)
+                else:
+                    buffer_copy = click.open_file(_fn, "rb")
                 thread = Thread(
                     target=lambda: generated_hashes.update(
                         {hash_name: generate_hash(buffer_copy, hash_name, tasks[hash_name], progress, chunk_size)}
-                    )
+                    ) and buffer_copy.close()
                 )
                 thread.start()
                 threads.append(thread)
