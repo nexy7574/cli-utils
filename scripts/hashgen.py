@@ -145,6 +145,8 @@ def main(
 
     if not no_ram:
         free_ram = psutil.virtual_memory().available
+        proc_used_ram = psutil.Process().oneshot().memory_info().vms
+        proc_used_ram_mb = round(proc_used__ram / 1024 / 1024)
         file_mb = round(size / 1024 / 1024)
         file_gb = round(size / 1024 / 1024 / 1024)
         free_gb = round(free_ram / 1024 / 1024 / 1024)
@@ -203,13 +205,13 @@ def main(
                     )
                     table.add_row(
                         "Multi-threaded, from disk",
-                        f"{file_gb:,}GiB",
+                        f"~{proc_used_ram_mb + 100:,}MiB",
                         f"{free_gb:,}GiB",
-                        _yn[size < free_ram]
+                        _yn[proc_used_ram < free_ram]
                     )
                     table.add_row(
                         "Single-threaded, from disk",
-                        f"{file_gb:,}GiB",
+                        f"~{proc_used_ram_mb + 100:,}MiB",
                         f"{free_gb:,}GiB",
                         _yn[size < free_ram]
                     )
@@ -285,7 +287,7 @@ def main(
 
     console.log(f"Hashes for {path}:")
     for hash_name, hash_value in generated_hashes.items():
-        console.print(f"[cyan]{hash_name}[/]: [code]{hash_value}[/]")
+        console.print(f"[cyan]{hash_name}[/]: {hash_value}")
 
 
 if __name__ == "__main__":
