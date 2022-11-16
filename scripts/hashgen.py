@@ -45,6 +45,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     hash_obj = types[name]()
 
     progress.start_task(task)
+    bytes_read = 0
     for chunk in iter(lambda: obj.read(chunk_size), b""):
         if kill:
             progress.stop_task(task)
@@ -52,6 +53,9 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
             return "cancelled"
         hash_obj.update(chunk)
         progress.update(task, advance=len(chunk))
+        bytes_read += len(chunk)
+    if progress.tasks[task].total != progress.tasks[task].completed:
+        progress.update(task, completed=bytes_read, total=bytes_read)
 
     return hash_obj.hexdigest()
 
