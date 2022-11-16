@@ -113,10 +113,12 @@ class Main:
         if self.yes is False:
             sure = Confirm.ask(
                 "Are you sure you want to delete {:,} things ({:,} files and {:,} directories) from {!s}?".format(
-                    self.found_files + self.found_directories, self.found_files, self.found_directories,
-                    self.root.absolute()
+                    self.found_files + self.found_directories,
+                    self.found_files,
+                    self.found_directories,
+                    self.root.absolute(),
                 ),
-                console=self.console
+                console=self.console,
             )
             if not sure:
                 self.console.log("[red]Aborting.")
@@ -155,7 +157,7 @@ class Main:
                 visible=self.threaded,
                 deleted=0,
                 threads=0,
-                per_sec=self.per_second()
+                per_sec=self.per_second(),
             )
             for _root, subdirectories, files in tree:
                 threads = []
@@ -174,7 +176,7 @@ class Main:
                         threads=len(threads),
                         completed=done_threads,
                         deleted=done_threads,
-                        per_sec=self.per_second()
+                        per_sec=self.per_second(),
                     )
 
                 for file in files:
