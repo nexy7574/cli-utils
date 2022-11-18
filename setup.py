@@ -12,7 +12,7 @@ with open("./requirements.txt") as file:
 setup(
     name="cli-utils",
     version=__VERSION__,
-    packages=["scripts"],
+    packages=["scripts", "scripts.utils"],
     url="https://github.com/EEKIM10/cli-utils",
     license="GNU General Public License v3.0",
     author="nex",
