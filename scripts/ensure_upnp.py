@@ -1,173 +1,216 @@
-"""
-This script is designed to be run by a crontab every 30 minutes or so.
-It reads a list configuration file to forward, with the below syntax:
-
-internal_port [external_port] protocol
-"""
-import re
-import subprocess
-import sys
-import textwrap
-import time
-import os
-import random
 import socket
-from pathlib import Path
-from typing import Dict
-
-from rich.console import Console
+import click
+import os
+import subprocess
+import time
+import random
+import json
+from rich import get_console
+from rich.prompt import IntPrompt, Prompt, Confirm
 from rich.progress import track
+from pathlib import Path
+from scripts.utils import ensure_upnp_utils as utils
 
 
+CONFIG_FILE = Path.home() / ".config" / "cli-utils" / "ensure_upnp.json"
+CONSOLE = get_console()
+
+
+@click.group()
 def main():
-    console = Console()
-    console.log("Interactive terminal." if sys.__stdin__.isatty() else "Non-interactive terminal.")
-    home_dir = Path(__file__).parent
+    pass
 
-    our_ip = os.getenv("IP", socket.gethostbyname(socket.gethostname() + ".local"))
 
-    console.log("Forwarding traffic to %s." % our_ip)
-    file = home_dir / "upnpc-redirects.txt"
-    if not file.exists():
-        cfg = Path.home() / ".config" / "cli-utils"
-        cfg.mkdir(exist_ok=True, parents=True)
-        example_txt = textwrap.dedent(
-            """# Example configuration file
-            # The format for this file is: internal_port [external_port?] protocol
-            #
-            # Protocol can be any of the following (case insensitive):
-            # * TCP
-            # * UDP
-            # * BOTH (creates two rules for TCP and UDP()
-            #
-            # Internal port must be the port that your service is listening to on this machine
-            # External port may be excluded, and if not provided, defaults to internal_port
-            #
-            # For example:
-            # 22 2222 TCP  -> Forwards whatever service is on localhost:22 to your_public_ip:2222
-            # 80 tcp  -> Forwards whatever service is on localhost:80 to your_public_ip:80
-            # You can also specify a rule multiple times (but be careful not to overlap)
-            # 80 8080 tcp
-            # 80 80 tcp
-            # 80 8000 tcp
-            # All of those redirect localhost:80 to public:[80/8080/8000]"""
-        )
-        file = cfg / "upnpc-redirects.txt"
-        if not file.exists():
-            file.write_text(example_txt)
-            console.log(f"No config file found. Please edit {file.absolute()}.")
-            sys.exit()
+@main.command()
+def config():
+    cfg = []
+    try:
+        CONFIG_FILE.parent.mkdir(parents=True)
+        CONFIG_FILE.touch()
+    except OSError as e:
+        CONSOLE.log(f"[yellow](WARN) Failed to create config file: {e}")
 
     try:
-        with file.open() as redirects_raw:
-            data = redirects_raw.readlines()
-    except FileNotFoundError:
-        if "--dry" not in sys.argv:
-            console.log("No file called 'upnpc-redirects.txt' exists at %s. Please create it." % home_dir)
-            sys.exit()
+        cfg = json.loads(CONFIG_FILE.read_text())
+    except json.JSONDecodeError:
+        CONSOLE.log(f"[yellow](WARN) Failed to load config - likely corrupted.")
+    except OSError as e:
+        CONSOLE.log(f"[yellow](WARN) Failed to load config - {e}")
+    else:
+        CONSOLE.log(f"[green]Successfully loaded config from {CONFIG_FILE.absolute()}")
+
+    CONSOLE.log(
+        "[yellow](WARN) Any edits made to the configuration in this program are saved in-memory until explicitly "
+        "saved. Pressing CTRL+C will abort any changes!"
+    )
+    while True:
+        CONSOLE.print(utils.render_mapping_table(cfg))
+        options = [
+            "Re-render table",
+            "Inspect rule",
+            "New rule",
+            "Edit rule",
+            "Remove rule",
+            "Save",
+            "Quit",
+            "Save & Quit",
+        ]
+        for n, opt in enumerate(options):
+            CONSOLE.print("{!s}: {}".format(n, opt))
+        try:
+            choice = IntPrompt.ask(
+                "What would you like to do?",
+                console=CONSOLE,
+                choices=list(map(str, range(len(options))))
+            )
+        except KeyboardInterrupt:
+            return
         else:
-            data = ["22 both", "200 tcp", "80 tcp", "443 tcp", "8080 tcp", "2222 tcp", "6969 udp"]
+            # I can't wait until support for 3.8 and 3.9 is dropped, so I can use match cases here
+            if choice == 0:
+                CONSOLE.print(utils.render_mapping_table(cfg))
+            elif choice == 1:
+                rule = IntPrompt.ask(
+                    "Which rule would you like to inspect?",
+                    choices=list(map(str, range(len(cfg))))
+                )
+                CONSOLE.print(utils.generate_rule_info(cfg[rule]))
+            elif choice == 2:
+                name = CONSOLE.input("Name for this new rule: ")
+                internal_port = IntPrompt.ask("Internal port")
+                external_port = IntPrompt.ask("WAN Facing (external) port", default=internal_port, show_default=True)
+                protocol = Prompt.ask("Protocol", choices=["tcp", "udp", "both"]).upper()
+                lease_time = IntPrompt.ask("Lease time (in seconds, 0 for infinity)")
+                entry = {
+                    "name": name,
+                    "internal_port": internal_port,
+                    "external_port": external_port,
+                    "protocol": protocol,
+                    "lease_time": lease_time
+                }
 
-    existing_map: Dict[str, set] = {}
-
-    if "--dry" not in sys.argv:
-        lineRegex = re.compile(
-            r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
-            re.IGNORECASE + re.VERBOSE,
-        )
-        with console.status("Fetching existing UPNP entries", spinner="bouncingBall") as status:
-            result = subprocess.run(("upnpc", "-L"), capture_output=True, encoding="utf-8")
-            if "(Invalid Action)" in result.stdout:
-                # Doesn't have support for IGD:2
-                status.update("Fetching existing UPNP ports (IGD:2 unavailable)")
-                result = subprocess.run(("upnpc", "-l"), capture_output=True, encoding="utf-8")
-            for line in result.stdout.splitlines():
-                if lineMatch := lineRegex.match(line):
-                    ip, ext_port = lineMatch.group("ext").split(":")
-                    int_port = lineMatch.group("port")
-                    if not existing_map.get(ip):
-                        existing_map[ip] = {int_port, ext_port}
+                for _entry in cfg:
+                    if utils.resolve_name(_entry) == utils.resolve_name(entry):
+                        entry["name"] = Prompt.ask("[red]Name is taken. Please choose a different one[/]")
+                    elif entry["internal_port"] == _entry:
+                        if not Confirm.ask(
+                                f"Port {entry['internal_port']} appears to be in use by rule "
+                                f"{utils.resolve_name(_entry)!r} (which is forwarded to {_entry['external_port']} "
+                                f"externally)\nAre you sure you want to continue, this may cause conflicts!"
+                        ):
+                            CONSOLE.log("[dim](WARN) Rule creator aborted.")
+                            break
+                else:
+                    cfg.append(entry)
+                    CONSOLE.log("[green]Created new rule.")
+            elif choice == 3:
+                rule = IntPrompt.ask(
+                    "Which rule would you like to edit?",
+                    choices=list(map(str, range(len(cfg))))
+                )
+                entry = cfg[rule]
+                CONSOLE.print(utils.generate_rule_info(entry))
+                while True:
+                    keys = list(entry.keys())
+                    for n, k in enumerate(keys):
+                        CONSOLE.print(f"{n}: {k}")
+                    edit_choice = IntPrompt.ask(
+                        "Which value do you want to edit?",
+                        choices=list(map(str, range(len(keys))))
+                    )
+                    key = keys[edit_choice]
+                    if key == "name":
+                        entry[key] = Prompt.ask("New name")
+                        break
+                    elif "port" in key:
+                        entry[key] = IntPrompt.ask(key.replace("_", " ").title())
+                        break
+                    elif key == "lease_time":
+                        entry[key] = IntPrompt.ask("Lease time in seconds")
                     else:
-                        existing_map[ip].update({int_port, ext_port})
-        console.log(
-            f"Logged {len(existing_map)} IP ports with {sum(len(existing_map[x]) for x in existing_map.keys())}"
-            f" used ports."
-        )
+                        entry[key] = Prompt.ask("Protocol", choices=["tcp", "udp", "both"])
+                        break
+            elif choice == 4:
+                rule = IntPrompt.ask(
+                    "Which rule would you like to remove?",
+                    choices=list(map(str, range(len(cfg))))
+                )
+                entry = cfg[rule]
+                CONSOLE.print(utils.generate_rule_info(cfg[rule]))
+                if Confirm.ask("Are you sure you want to remove this rule?"):
+                    cfg.pop(rule)
+                    CONSOLE.print(f"[green]Removed {utils.resolve_name(entry)!r}.")
+                else:
+                    CONSOLE.print("[yellow]Cancelled")
+            elif choice == 5:
+                CONFIG_FILE.write_text(json.dumps(cfg))
+                CONSOLE.log("[green]Saved config.")
+            elif choice == 6:
+                return
+            elif choice == 7:
+                CONSOLE.print(cfg)
+                CONFIG_FILE.write_text(json.dumps(cfg))
+                CONSOLE.log("[green]Saved config.")
+                return
 
-    # NOTE: Some of the following code has been taken from my in-house modification of this script
-    # and consequently may not work properly on all systems.
-    def parse_data(_line, *, force_protocol: str = ...):
-        if _line.startswith("#") or not line.strip():  # comment or whitespace line
-            return ..., ..., ...
-        if len(_line.split(" ")) == 3:
-            internal_port, external_port, protocol = _line.split(" ")
-            assert external_port.isdigit(), f"{external_port!r} is not an integer!"
-        elif len(_line.split(" ")) == 2:
-            internal_port, protocol = _line.split(" ")
+
+@main.command()
+@click.option("--headless", is_flag=True, help="Runs headless, meaning script will not ask for input.")
+@click.option(
+    "--config-file",
+    "--config",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, readable=True, resolve_path=True),
+    default=CONFIG_FILE.absolute().__str__(),
+    help="The config file location."
+)
+@click.option("--verbose", "-v", is_flag=True, help="Increases verbosity.")
+@click.option("--ip", default=None, help="The IP to forward to. If not specified, is automatically detected.")
+@click.option("--dry-run", "--dry", is_flag=True, help="Makes no changes to forwarded ports, just simulates.")
+def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool):
+    if ip is None:
+        ip = os.getenv("IP")
+        if ip is None:
+            if headless is False:
+                ip = Prompt.ask("Your local IP")
+
+    if not ip:
+        CONSOLE.log("[yellow](WARN) Guessing IP based on hostname.")
+        ip = socket.gethostbyname(socket.gethostname() + ".local")
+
+    conf_file = Path(config_file).absolute()
+    cfg = json.loads(conf_file.read_text())
+    exec_queue = []
+    for entry in cfg:
+        command = ["upnpc", "-a", ip, entry["internal_port"], entry["external_port"]]
+
+        if entry["protocol"] in ["tcp", "udp"]:
+            command.append(entry["protocol"])
+            exec_queue.append(command)
         else:
-            raise ValueError(f"Too many arguments, got {len(_line.split(' '))}, expected 2-3.")
-        if force_protocol is not ...:
-            protocol = force_protocol
-        assert internal_port.isdigit(), f"{internal_port!r} is not an integer!"
-        assert protocol.lower().strip() in ("tcp", "udp", "both"), f"{protocol!r} is not TCP, UDP, or BOTH."
-        try:
-            # noinspection PyUnboundLocalVariable
-            return internal_port, external_port, protocol.lower().strip()
-        except NameError:  # duck typing gang
-            return internal_port, ..., protocol.lower().strip()
+            _c = command[:]
+            _c.append("tcp")
+            exec_queue.append(_c)
+            _c2 = command[:]
+            _c2.append("udp")
+            exec_queue.append(_c2)
 
-    entries = []
-
-    for line_number, line in enumerate(data):
-        if not bool(line) or line.startswith("#"):
-            continue
-        try:
-            i, e, p = parse_data(line)
-            if i is ... and e is ... and p is ...:
-                continue  # empty or comment line
-            assert i is not ...
-            assert p is not ...
-            for ip_addr, ports in existing_map.items():
-                if e and e in ports:
-                    try:
-                        hostname = socket.gethostbyaddr(ip_addr)
-                    except socket.herror:
-                        hostname = "%s-unknown-hostname" % ip_addr
-                    console.log(f"External port {e} is [red]already in use[/] by {ip_addr} ({hostname}). Ignoring.")
-                    # In the future we will have the option to automatically override
-                    continue
-        except AssertionError as e:
-            console.log(f"Invalid argument on line {line_number+1}: [red bright]`{e!s}`[/]")
-        except ValueError as e:
-            console.log(f"Invalid argument count on line {line_number+1}: [bright red]`{e!s}`[/]")
-        except Exception as e:
-            console.log(f"[red bright]Fatal exception while parsing line {line_number+1}: `{e!s}`[/]")
+    for entry in track(exec_queue, description="Forwarding ports", console=CONSOLE):
+        CONSOLE.log("Running", f"[dim]{' '.join(map(str, entry))!r}[/]")
+        if dry_run:
+            time.sleep(random.random())
+            CONSOLE.log(f"[green]Forwarded internal port {entry[3]} to {entry[4]}")
         else:
-            arguments = ["upnpc", "-a", our_ip, i]
-            if e is ...:
-                arguments.append(i)
-            else:
-                arguments.append(e)
-
-            if p == "both":
-                arguments.append("tcp")
-                entries.append(arguments.copy())
-                arguments[-1] = "udp"
-                entries.append(arguments.copy())
-            else:
-                arguments.append(p)
-                entries.append(arguments.copy())
-
-    for entry in track(entries, description=f"Forwarding {len(entries)} ports.", transient=True, console=console):
-        if "--dry" in sys.argv:
-            console.print("Running", "{!r}".format(" ".join(entry)))
-            time.sleep(random.randint(5, 20) / 10)
-            continue
-        if not sys.__stdout__.isatty():
-            console.log("Running %r" % " ".join(entry))
-        result = subprocess.run(entry, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if result.returncode != 0:
-            console.log(f"[red]Got status code `{result.returncode}` on command {' '.join(entry)!r}.")
+            process = subprocess.run(
+                entry,
+                capture_output=True,
+                encoding="utf-8"
+            )
+            if verbose:
+                if process.returncode != 0:
+                    CONSOLE.log(f"[yellow]Non-zero exit code[/]: [red]{process.returncode}")
+                else:
+                    CONSOLE.log(f"[green]Forwarded internal port {entry[3]} to {entry[4]}")
 
 
 if __name__ == "__main__":
