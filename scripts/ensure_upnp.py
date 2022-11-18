@@ -202,7 +202,7 @@ def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool)
             CONSOLE.log(f"[green]Forwarded internal port {entry[3]} to {entry[4]}")
         else:
             process = subprocess.run(
-                entry,
+                tuple(map(str, entry)),
                 capture_output=True,
                 encoding="utf-8"
             )
