@@ -184,7 +184,7 @@ def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool)
     for entry in cfg:
         command = ["upnpc", "-a", ip, entry["internal_port"], entry["external_port"]]
 
-        if entry["protocol"] in ["tcp", "udp"]:
+        if entry["protocol"] in ["TCP", "UDP"]:
             command.append(entry["protocol"])
             exec_queue.append(command)
         else:
