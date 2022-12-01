@@ -70,14 +70,6 @@ def main(
     fp = file
     path = pathlib.Path(fp).expanduser().resolve()
     stat = path.stat()
-    if by_percent is not None:
-        by_percent = by_percent * 0.01
-        if by_percent == 0:
-            raise ValueError("Percent must be >0%.")
-        elif by_percent >= 0.95:
-            raise ValueError("Percent cannot be greater than 95%")
-        passes = math.floor(stat.st_size * by_percent)
-        console.log(f"By percent calculated that {passes:,} are needed.")
 
     with path.open("rb") as file:
         console.print("Reading file...")
@@ -92,6 +84,14 @@ def main(
 
         size = len(buffer.read())
         buffer.seek(0)
+        if by_percent is not None:
+            by_percent = by_percent * 0.01
+            if by_percent == 0:
+                raise ValueError("Percent must be >0%.")
+            elif by_percent >= 0.95:
+                raise ValueError("Percent cannot be greater than 95%")
+            passes = math.floor(size * by_percent)
+            console.log(f"By percent calculated that {passes:,} are needed.")
 
         bound_pct = size * (0.01 * safety_boundary)
         bound_start = round(bound_pct)
