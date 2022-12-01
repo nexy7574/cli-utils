@@ -59,9 +59,7 @@ def config():
             CONSOLE.print("{!s}: {}".format(n, opt))
         try:
             choice = IntPrompt.ask(
-                "What would you like to do?",
-                console=CONSOLE,
-                choices=list(map(str, range(len(options))))
+                "What would you like to do?", console=CONSOLE, choices=list(map(str, range(len(options))))
             )
         except KeyboardInterrupt:
             return
@@ -70,10 +68,7 @@ def config():
             if choice == 0:
                 CONSOLE.print(utils.render_mapping_table(cfg))
             elif choice == 1:
-                rule = IntPrompt.ask(
-                    "Which rule would you like to inspect?",
-                    choices=list(map(str, range(len(cfg))))
-                )
+                rule = IntPrompt.ask("Which rule would you like to inspect?", choices=list(map(str, range(len(cfg)))))
                 CONSOLE.print(utils.generate_rule_info(cfg[rule]))
             elif choice == 2:
                 name = CONSOLE.input("Name for this new rule: ")
@@ -86,7 +81,7 @@ def config():
                     "internal_port": internal_port,
                     "external_port": external_port,
                     "protocol": protocol,
-                    "lease_time": lease_time
+                    "lease_time": lease_time,
                 }
 
                 for _entry in cfg:
@@ -94,9 +89,9 @@ def config():
                         entry["name"] = Prompt.ask("[red]Name is taken. Please choose a different one[/]")
                     elif entry["internal_port"] == _entry:
                         if not Confirm.ask(
-                                f"Port {entry['internal_port']} appears to be in use by rule "
-                                f"{utils.resolve_name(_entry)!r} (which is forwarded to {_entry['external_port']} "
-                                f"externally)\nAre you sure you want to continue, this may cause conflicts!"
+                            f"Port {entry['internal_port']} appears to be in use by rule "
+                            f"{utils.resolve_name(_entry)!r} (which is forwarded to {_entry['external_port']} "
+                            f"externally)\nAre you sure you want to continue, this may cause conflicts!"
                         ):
                             CONSOLE.log("[dim](WARN) Rule creator aborted.")
                             break
@@ -104,10 +99,7 @@ def config():
                     cfg.append(entry)
                     CONSOLE.log("[green]Created new rule.")
             elif choice == 3:
-                rule = IntPrompt.ask(
-                    "Which rule would you like to edit?",
-                    choices=list(map(str, range(len(cfg))))
-                )
+                rule = IntPrompt.ask("Which rule would you like to edit?", choices=list(map(str, range(len(cfg)))))
                 entry = cfg[rule]
                 CONSOLE.print(utils.generate_rule_info(entry))
                 while True:
@@ -115,8 +107,7 @@ def config():
                     for n, k in enumerate(keys):
                         CONSOLE.print(f"{n}: {k}")
                     edit_choice = IntPrompt.ask(
-                        "Which value do you want to edit?",
-                        choices=list(map(str, range(len(keys))))
+                        "Which value do you want to edit?", choices=list(map(str, range(len(keys))))
                     )
                     key = keys[edit_choice]
                     if key == "name":
@@ -131,10 +122,7 @@ def config():
                         entry[key] = Prompt.ask("Protocol", choices=["tcp", "udp", "both"])
                         break
             elif choice == 4:
-                rule = IntPrompt.ask(
-                    "Which rule would you like to remove?",
-                    choices=list(map(str, range(len(cfg))))
-                )
+                rule = IntPrompt.ask("Which rule would you like to remove?", choices=list(map(str, range(len(cfg)))))
                 entry = cfg[rule]
                 CONSOLE.print(utils.generate_rule_info(cfg[rule]))
                 if Confirm.ask("Are you sure you want to remove this rule?"):
@@ -162,7 +150,7 @@ def config():
     "-c",
     type=click.Path(exists=True, dir_okay=False, readable=True, resolve_path=True),
     default=CONFIG_FILE.absolute().__str__(),
-    help="The config file location."
+    help="The config file location.",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Increases verbosity.")
 @click.option("--ip", default=None, help="The IP to forward to. If not specified, is automatically detected.")
@@ -201,11 +189,7 @@ def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool)
             time.sleep(random.random())
             CONSOLE.log(f"[green]Forwarded internal port {entry[3]} to {entry[4]}")
         else:
-            process = subprocess.run(
-                tuple(map(str, entry)),
-                capture_output=True,
-                encoding="utf-8"
-            )
+            process = subprocess.run(tuple(map(str, entry)), capture_output=True, encoding="utf-8")
             if verbose:
                 if process.returncode != 0:
                     CONSOLE.log(f"[yellow]Non-zero exit code[/]: [red]{process.returncode}")

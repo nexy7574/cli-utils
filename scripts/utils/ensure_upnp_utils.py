@@ -41,22 +41,9 @@ def _add_entry_to_table(table: Table, entry: dict, *, index: int = None):
     protocol = entry["protocol"].upper()
     lease_time = entry.get("lease_time") or "unlimited"
     if index is None:
-        table.add_row(
-            str(name),
-            str(internal),
-            str(external),
-            str(protocol),
-            str(lease_time)
-        )
+        table.add_row(str(name), str(internal), str(external), str(protocol), str(lease_time))
     else:
-        table.add_row(
-            str(index),
-            str(name),
-            str(internal),
-            str(external),
-            str(protocol),
-            str(lease_time)
-        )
+        table.add_row(str(index), str(name), str(internal), str(external), str(protocol), str(lease_time))
 
 
 def render_mapping_table(config: list) -> Table:

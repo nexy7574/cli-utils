@@ -54,10 +54,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
         if kill:
             progress.stop_task(task)
             del hash_obj
-            progress.update(
-                task,
-                description=f"Generating {name} hash (Cancelled)"
-            )
+            progress.update(task, description=f"Generating {name} hash (Cancelled)")
             return "cancelled"
         hash_obj.update(chunk)
         progress.update(task, advance=len(chunk))
@@ -109,10 +106,7 @@ def main(
             global kill
             for _task in progress.tasks:
                 if _task.completed != _task.total:
-                    progress.update(
-                        _task.id,
-                        description=_task.description + " (Cancelling)"
-                    )
+                    progress.update(_task.id, description=_task.description + " (Cancelling)")
             kill = True
             console.print("Interrupt handled, stopping threads.")
 
@@ -195,25 +189,22 @@ def main(
                         "Multi-threaded, from RAM",
                         f"{resolved_gb:,}GiB",
                         f"{free_gb:,}GiB",
-                        _yn[resolved_size < free_ram]
+                        _yn[resolved_size < free_ram],
                     )
                     table.add_row(
-                        "Single-threaded, from RAM",
-                        f"{file_gb:,}GiB",
-                        f"{free_gb:,}GiB",
-                        _yn[size < free_ram]
+                        "Single-threaded, from RAM", f"{file_gb:,}GiB", f"{free_gb:,}GiB", _yn[size < free_ram]
                     )
                     table.add_row(
                         "Multi-threaded, from disk",
                         f"~{proc_used_ram_mb + 100 * len(hashes_to_gen):,}MiB",
                         f"{free_gb:,}GiB",
-                        _yn[proc_used_ram + 100 * len(hashes_to_gen) < free_ram]
+                        _yn[proc_used_ram + 100 * len(hashes_to_gen) < free_ram],
                     )
                     table.add_row(
                         "Single-threaded, from disk",
                         f"~{proc_used_ram_mb + 100:,}MiB",
                         f"{free_gb:,}GiB",
-                        _yn[proc_used_ram + 100 < free_ram]
+                        _yn[proc_used_ram + 100 < free_ram],
                     )
                     console.print(table)
                     console.print(
@@ -277,7 +268,8 @@ def main(
                 thread = Thread(
                     target=lambda: generated_hashes.update(
                         {hash_name: generate_hash(buffer_copy, hash_name, tasks[hash_name], progress, chunk_size)}
-                    ) and buffer_copy.close()
+                    )
+                    and buffer_copy.close()
                 )
                 thread.start()
                 threads.append(thread)
