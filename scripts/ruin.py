@@ -11,13 +11,26 @@ from rich.progress import track, wrap_file
 
 
 def scramble(
-    buffer: io.BytesIO, bound_start: int, bound_end: int, min_chunk_size: int, max_chunk_size: int, passes: int
+    buffer: io.BytesIO,
+    bound_start: int,
+    bound_end: int,
+    min_chunk_size: int,
+    max_chunk_size: int,
+    passes: int,
+    method: str,
 ):
     written = 0
     buffer.seek(0)
     for pass_no in range(passes):
         buffer.seek(random.randint(bound_start, bound_end))
-        chunk = os.urandom(random.randint(min_chunk_size, max_chunk_size))
+        if method == "scramble":
+            chunk = os.urandom(random.randint(min_chunk_size, max_chunk_size))
+        elif method == "reverse":
+            chunk = buffer.read(random.randint(min_chunk_size, max_chunk_size))[::-1]
+        elif method == "zero":
+            chunk = b"\x00" * random.randint(min_chunk_size, max_chunk_size)
+        else:
+            raise ValueError("Invalid method")
         written += len(chunk)
         buffer.write(chunk)
         buffer.seek(0)
@@ -46,6 +59,13 @@ def scramble(
     is_flag=True,
     help="Silences all output during scrambling. Takes precedence over --verbose. Speeds up scrambling.",
 )
+@click.option(
+    "--method",
+    "-M",
+    default="scramble",
+    type=click.Choice(["scramble", "reverse", "zero"]),
+    help="The method to use for scrambling the file.",
+)
 @click.argument(
     "file",
     type=click.Path(
@@ -64,8 +84,17 @@ def main(
     verbose: bool,
     by_percent: float,
     silent: bool,
+    method: str,
 ):
-    """Ruins different parts of a file. Not much use here, however can be used to create cool effects with media."""
+    """
+    Ruins different parts of a file. Not much use here, however can be used to create cool effects with media.
+
+    Ruin methods:\n
+        * scramble: Overwrites chunks with random data from /dev/urandom.\n
+        * reverse: Reverses chunks (e.g. text goes from "abc[def]g" to "abc[fed]g").\n
+        * zero: Overwrites chunks with null bytes.\n
+
+    """
     console = get_console()
     fp = file
     path = pathlib.Path(fp).expanduser().resolve()
@@ -109,11 +138,11 @@ def main(
                     continue
             else:
                 for pass_no, written in track(
-                    scramble(buffer, bound_start, bound_end, min_chunk_size, max_chunk_size, passes),
+                    scramble(buffer, bound_start, bound_end, min_chunk_size, max_chunk_size, passes, method),
                     description="Scrambling chunks",
                     console=console,
                     transient=not verbose,
-                    total=passes
+                    total=passes,
                 ):
                     if verbose:
                         console.print("[i dim]Pass {:,}: scrambled {:,} bytes.".format(pass_no + 1, written))
