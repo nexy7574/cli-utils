@@ -29,7 +29,7 @@ setup(
             "visual-rm = scripts.visual_rm:main",
             "vrm = scripts.visual_rm:main",
             "hashgen = scripts.hashgen:main",
-            "ruin = scrips.ruin:main"
+            "ruin = scripts.ruin:main"
         ]
     },
 )
