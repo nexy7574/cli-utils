@@ -77,8 +77,7 @@ def main(
         elif by_percent >= 0.95:
             raise ValueError("Percent cannot be greater than 95%")
         passes = math.floor(stat.st_size * by_percent)
-        if verbose:
-            console.log(f"By percent calculated that {passes:,} are needed.")
+        console.log(f"By percent calculated that {passes:,} are needed.")
 
     with path.open("rb") as file:
         console.print("Reading file...")
@@ -114,6 +113,7 @@ def main(
                     description="Scrambling chunks",
                     console=console,
                     transient=not verbose,
+                    total=passes
                 ):
                     if verbose:
                         console.print("[i dim]Pass {:,}: scrambled {:,} bytes.".format(pass_no + 1, written))
