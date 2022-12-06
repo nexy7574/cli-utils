@@ -14,7 +14,7 @@ import humanize
 try:
     from utils.wg_man import get_interface_stats
 except ImportError:
-    from script.utils.wg_man import get_interface_stats
+    from scripts.utils.wg_man import get_interface_stats
     # dev vs prod
 
 console = rich.get_console()
