@@ -11,7 +11,11 @@ from rich.table import Table
 from rich.tree import Tree
 import datetime
 import humanize
-from utils.wg_man import get_interface_stats
+try:
+    from utils.wg_man import get_interface_stats
+except ImportError:
+    from script.utils.wg_man import get_interface_stats
+    # dev vs prod
 
 console = rich.get_console()
 
