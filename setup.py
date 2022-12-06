@@ -30,6 +30,7 @@ setup(
             "vrm = scripts.visual_rm:main",
             "hashgen = scripts.hashgen:main",
             "ruin = scripts.ruin:main",
+            "arriva = scripts.arriva:main",
         ]
     },
 )
