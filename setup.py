@@ -31,6 +31,7 @@ setup(
             "hashgen = scripts.hashgen:main",
             "ruin = scripts.ruin:main",
             "arriva = scripts.arriva:main",
+            "wg-manager = scripts.wg_manager:main"
         ]
     },
 )
