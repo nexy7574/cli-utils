@@ -79,8 +79,10 @@ def status(censor: bool, interface: str | None):
             peer_tree.add(f"[bold]Persistent Keepalive:[/bold] {keep_alive}")
 
             last_handshake = details['latest-handshakes'].get(peer_pubkey, '?')
+            last_handshake_ago = "?"
             if last_handshake != "?":
-                last_handshake_ago = humanize.naturaltime(datetime.datetime.now() - last_handshake)
+                if last_handshake is not None:
+                    last_handshake_ago = humanize.naturaltime(datetime.datetime.now() - last_handshake)
                 last_handshake = last_handshake.strftime("%x at %X")
             else:
                 last_handshake_ago = "?"
