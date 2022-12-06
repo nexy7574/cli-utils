@@ -165,6 +165,11 @@ def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool)
     if not ip:
         CONSOLE.log("[yellow](WARN) Guessing IP based on hostname.")
         ip = socket.gethostbyname(socket.gethostname() + ".local")
+        CONSOLE.log("[yellow](WARN) Detected IP: {} | 5 seconds to interrupt script before continuing.".format(ip))
+        try:
+            time.sleep(5)
+        except KeyboardInterrupt:
+            raise click.Abort() from None
 
     conf_file = Path(config_file).absolute()
     cfg = json.loads(conf_file.read_text())
