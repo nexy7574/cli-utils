@@ -83,7 +83,9 @@ def status(censor: bool, interface: str | None):
             if last_handshake != "?":
                 if last_handshake is not None:
                     last_handshake_ago = humanize.naturaltime(datetime.datetime.now() - last_handshake)
-                last_handshake = last_handshake.strftime("%x at %X")
+                    last_handshake = last_handshake.strftime("%x at %X")
+                else:
+                    last_handshake = last_handshake_ago = "N/A"
             else:
                 last_handshake_ago = "?"
             peer_tree.add(f"[bold]Last Handshake:[/bold] {last_handshake} ({last_handshake_ago})")
