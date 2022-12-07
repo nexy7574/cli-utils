@@ -16,6 +16,11 @@ Use at your own risk.
 
 If your computer does not support the interface that this script uses, it will not make any modifications.
 The first thing the script does is check for the existence of the interface, and if it does not exist, it will exit.
+
+UPDATE: it appears that, while the boost mode *is* settable, it's not as effective as it is via the Windows software.
+It appears that overboost always slows the fans at around 40c to that of the normal mode. Silent will also rev up,
+however does not exceed a lower than "balanced" RPM, even when the CPU is overheating. Balanced mode is the default,
+so not much to say there.
 """
 import io
 import os
