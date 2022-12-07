@@ -5,6 +5,7 @@ import sys
 import pwd
 import os
 from tempfile import TemporaryFile
+from elevate import elevate
 from rich import get_console
 from rich.prompt import Prompt, IntPrompt, Confirm
 from rich.syntax import Syntax
@@ -33,27 +34,19 @@ def generate_unit_file(unit: dict, service: dict, install: dict):
 
 
 def main():
+    _uname = getpass.getuser()
     types = ["simple", "exec", "forking", "oneshot", "dbus", "notify", "idle"]
-    restart_on = ["always", "on-failure", "on-success", "on-abnormal", "on-abort", "on-watchdog", "no"]
     if os.getuid() != 0:
-        try:
-            from elevate import elevate
-
+        if Confirm.ask(
+            "This script requires root privileges in order to write to /etc/systemd/system. Do you want to "
+            "attempt to elevate to root?"
+        ):
             console.log("[gray italics]Attempting to elevate program permissions...[/]")
             elevate()
-        except ImportError:
-            elevate = None
-            console.log(
-                r"[yellow][Warning][/] Program is not running as root!"
-                r" This will be unable to write your configuration files, only print them."
-            )
 
     name = Prompt.ask("Please enter a name for this service")
     description = Prompt.ask("Please enter a description of this service")
     _type = Prompt.ask(f"What type is this service?", choices=types).lower().strip()
-    remain_after_exit = Confirm.ask(
-        "Should this service be considered offline when all of its processes are exited?", default=True
-    )
     restart_on_death = Confirm.ask("Should this service be automatically restarted on death?", default=False)
     max_restarts = time_between_restarts = 0
     if restart_on_death:
@@ -67,9 +60,7 @@ def main():
     requires_network = Confirm.ask("Should the service wait until network connectivity is established?")
     user = None
     while user is None:
-        user = Prompt.ask(
-            "What user should this service run as? (e.g. root, default, nobody, etc.)", default=getpass.getuser()
-        )
+        user = Prompt.ask("What user should this service run as? (e.g. root, default, nobody, etc.)", default=_uname)
         if user.lower() in ["root", "default", "none", " "]:
             user = None
             break

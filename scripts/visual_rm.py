@@ -7,18 +7,23 @@ from typing import Callable, Any
 import click
 import time
 from threading import Thread
-from functools import partial
+from elevate import elevate
 from pathlib import Path
 from rich import get_console
 from rich.prompt import Prompt, Confirm
-from rich.progress import Progress, track, TextColumn, SpinnerColumn, MofNCompleteColumn
+from rich.progress import Progress, TextColumn, SpinnerColumn, MofNCompleteColumn
 
 
 try:
     if os.getuid() != 0:
         get_console().log(
-            "[yellow bold]You are not root. Some files and directories may not be able to be" " indexed or deleted.[/]"
+            "[yellow bold]You are not root. Some files and directories may not be able to be indexed or deleted.[/]"
         )
+        if Confirm.ask("Would you like to elevate to root? (may call `sudo`)", default=True):
+            try:
+                elevate()
+            except Exception as e:
+                get_console().log(f"[red]Failed to elevate to root: {e}[/]")
 except AttributeError:
     pass
 

@@ -1,20 +1,14 @@
 # cli-utils
 
-I use these.
+This package contains a bunch of shell scripts that I use to make my life easier when working in a command line.
+A lot of these scripts are mainly just wrappers around other tools, but with more ✨sparkle✨.
+A lot of the modifications include adding colours, progress bars, etc, as well as making logging more verbose,
+and generally just looking pretty.
 
-I also wrote these.
+The only benefit to these tools is they look good - I am almost certain you can find an officially maintained 
+package that includes very similar scripts that do the exact same thing as mine, just with better efficiency.
 
-You can use them if you wanna, however I'm not sure how well they'll work cross-platform
-
-I know they work on my linux install, and most likely work on my raspberry pi too,
-but that doesn't mean it'll work globally.
-
-## Running
-
-If you want to run any of these, you need at least python3.6 for most of these,
-however python3.8+ is recommended (since these are written in 3.9)
-
-If you're suddenly getting `SyntaxError`, just upgrade.
+Still though, if you're a sucker for moving bars and colours, then this is the package for you.
 
 ## Installing (the right way)
 
@@ -38,6 +32,20 @@ $ python3 -m pipx ensurepath
 </details>
 
 > Note: In order to install scripts properly, pip(x) requires that you have python 3.9 or newer.
+
+## Running
+Once you've installed via `pipx`, you'll want to ensure that the scripts are on your PATH.
+By default, `pipx` installs the scripts into `~/.local/bin`, so you'll want to add that to your PATH.
+Pipx has a useful command for this: `pipx ensurepath`. It may take a few seconds, but it will ensure that all shells
+have the correct PATH.
+
+### Elevated privileges
+By default, scripts are added to ~/.local/bin, meaning if you want to run them with elevated privileges, you'll need to
+either add `/home/<user>/.local/bin` to `/root/.profile`, or specify the full path
+(like `sudo ~/.local/bin/vrm`).
+
+Scripts now attempt to automatically elevate their privileges if they need it - note that this may require a password
+prompt, which *may* break the output.
 
 ## What each tool is
 
