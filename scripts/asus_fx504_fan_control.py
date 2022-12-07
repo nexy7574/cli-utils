@@ -65,7 +65,8 @@ def set_mode(mode: str):
     if os.getuid() != 0:
         click.echo("This script must be run as root to modify the fan mode.")
         old_argv = sys.argv[:]
-        sys.argv[0] = (os.getcwd() + "/" + sys.argv[0])
+        if sys.argv[0].endswith(".py"):
+            sys.argv[0] = (os.getcwd() + "/" + sys.argv[0])
         elevate.elevate()
         sys.argv = old_argv
     click.echo(f"Setting fan mode to {mode}...")
