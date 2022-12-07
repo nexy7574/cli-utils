@@ -181,6 +181,14 @@ def main(
         "shake_128": shake_128,
         "shake_256": shake_256,
     }
+
+    if (hash_count := list(hashes_to_gen.values()).count(True)) > (cpu_count := os.cpu_count()):
+        console.print(
+            f"[yellow]:warning: You have selected {hash_count} hashing algorithms, and enabled multi-threaded hashing, "
+            f"however you only have {cpu_count} CPU cores. This may cause performance issues.\n"
+            f"[i]No action taken.[/][/yellow]"
+        )
+
     generated_hashes = {
         k: None
         for k in hashes_to_gen.keys()
