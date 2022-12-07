@@ -33,9 +33,9 @@ import os
 
 
 def get_hasher(name: str) -> callable:
-    func = getattr(hashlib, name, None)
-    if func is None:
-
+    try:
+        func = hashlib.new(name)
+    except ValueError:
         class _Dummy:
             def __init__(self):
                 self.name = name
@@ -46,32 +46,24 @@ def get_hasher(name: str) -> callable:
             def hexdigest(self):
                 return "not supported"
 
-        return _Dummy()
+        return _Dummy
     return func
 
 
-types = {
-    "md5": None,
-    "sha1": None,
-    "sha224": None,
-    "sha256": None,
-    "sha384": None,
-    "sha512": None,
-    "blake2b": None,
-    "blake2s": None,
-}
+types = {x: None for x in hashlib.algorithms_available}
 for __t in types.keys():
     types[__t] = get_hasher(__t)
 
 kill = False  # global kill for threads
 for _k in types.copy().keys():
+    _k: str
     if "sha" in _k:
-        types[_k.strip("sha")] = types[_k]
+        types[_k.replace("sha", "", 1)] = types[_k]
 
 
 def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, chunk_size: int) -> str:
     """Generate hash from file object"""
-    hash_obj = types[name]()
+    hash_obj = types[name]
 
     progress.start_task(task)
     bytes_read = 0
@@ -87,7 +79,11 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     if progress.tasks[task].total != progress.tasks[task].completed:
         progress.update(task, completed=bytes_read, total=bytes_read)
 
-    return hash_obj.hexdigest()
+    try:
+        return hash_obj.hexdigest()
+    except TypeError:
+        if "shake" in name:
+            return hash_obj.hexdigest(128)
 
 
 @click.command()
@@ -106,8 +102,16 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
 @click.option("--sha256", is_flag=True, default=False, help="Use SHA256 hashing algorithm.")
 @click.option("--sha384", is_flag=True, default=False, help="Use SHA384 hashing algorithm.")
 @click.option("--sha512", is_flag=True, default=False, help="Use SHA512 hashing algorithm.")
-@click.option("--blake2b", is_flag=True, default=False, help="Use blake2b hashing algorithm.")
-@click.option("--blake2s", is_flag=True, default=False, help="Use blake2s hashing algorithm.")
+@click.option("--sha3_224", "--sha3-224", is_flag=True, default=False, help="Use SHA3_224 hashing algorithm.")
+@click.option("--sha3_256", "--sha3-256", is_flag=True, default=False, help="Use SHA3_256 hashing algorithm.")
+@click.option("--sha3_384", "--sha3-384", is_flag=True, default=False, help="Use SHA3_384 hashing algorithm.")
+@click.option("--sha3_512", "--sha3-512", is_flag=True, default=False, help="Use SHA3_512 hashing algorithm.")
+@click.option("--sm3", is_flag=True, default=False, help="Use SM3 hashing algorithm.")
+@click.option("--blake2b", is_flag=True, default=False, help="Use BLAKE2b hashing algorithm.")
+@click.option("--blake2s", is_flag=True, default=False, help="Use BLAKE2s hashing algorithm.")
+@click.option("--ripe-md-160", "--ripemd160", is_flag=True, default=False, help="Use RIPEMD160 hashing algorithm.")
+@click.option("--shake_128", "--shake-128", is_flag=True, default=False, help="Use SHAKE_128 hashing algorithm.")
+@click.option("--shake_256", "--shake-256", is_flag=True, default=False, help="Use SHAKE_256 hashing algorithm.")
 @click.option(
     "--all-hashes", is_flag=True, default=False, help="Use all hashing algorithms. Overrules previous hash options."
 )
@@ -122,8 +126,16 @@ def main(
     sha256: bool,
     sha384: bool,
     sha512: bool,
+    sha3_224: bool,
+    sha3_256: bool,
+    sha3_384: bool,
+    sha3_512: bool,
+    sm3: bool,
     blake2b: bool,
     blake2s: bool,
+    ripe_md_160: bool,
+    shake_128: bool,
+    shake_256: bool,
     all_hashes: bool,
     file: str,
 ):
@@ -146,7 +158,8 @@ def main(
         signal.signal(signal.SIGINT, signal_handler)
 
     if all_hashes:
-        md5 = sha1 = sha224 = sha256 = sha384 = sha512 = blake2b = blake2s = True
+        md5 = sha1 = sha224 = sha256 = sha384 = sha512 = blake2b = blake2s = sha3_224 = sha3_256 = sha3_384 = True
+        sha3_512 = sm3 = ripe_md_160 = shake_128 = shake_256 = True
 
     chunk_size = block_size * 1024
     console = get_console()
@@ -159,16 +172,18 @@ def main(
         "sha512": sha512,
         "blake2b": blake2b,
         "blake2s": blake2s,
+        "sha3_224": sha3_224,
+        "sha3_256": sha3_256,
+        "sha3_384": sha3_384,
+        "sha3_512": sha3_512,
+        "sm3": sm3,
+        "ripemd160": ripe_md_160,
+        "shake_128": shake_128,
+        "shake_256": shake_256,
     }
     generated_hashes = {
-        "md5": None,
-        "sha1": None,
-        "sha224": None,
-        "sha256": None,
-        "sha384": None,
-        "sha512": None,
-        "blake2b": None,
-        "blake2s": None,
+        k: None
+        for k in hashes_to_gen.keys()
     }
     [generated_hashes.update({k: "incomplete"}) for k in hashes_to_gen.keys() if hashes_to_gen[k]]
     [generated_hashes.pop(k) for k in hashes_to_gen.keys() if not hashes_to_gen[k]]
