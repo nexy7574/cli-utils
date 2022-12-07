@@ -1,4 +1,5 @@
 import copy
+import sys
 
 from rich import get_console
 from rich.progress import (
@@ -30,14 +31,38 @@ import os
 # (n being number of processes), or read the file n times; either way, this is really wasteful.
 # At least with threading, it will be ever so slightly faster than single-threaded, despite the GIL limitations.
 
+
+def get_hasher(name: str) -> callable:
+    func = getattr(hashlib, name, None)
+    if func is None:
+
+        class _Dummy:
+            def __init__(self):
+                self.name = name
+
+            def update(self, *args, **kwargs):
+                pass
+
+            def hexdigest(self):
+                return "not supported"
+
+        return _Dummy()
+    return func
+
+
 types = {
-    "md5": hashlib.md5,
-    "sha1": hashlib.sha1,
-    "sha224": hashlib.sha224,
-    "sha256": hashlib.sha256,
-    "sha384": hashlib.sha384,
-    "sha512": hashlib.sha512,
+    "md5": None,
+    "sha1": None,
+    "sha224": None,
+    "sha256": None,
+    "sha384": None,
+    "sha512": None,
+    "blake2b": None,
+    "blake2s": None,
 }
+for __t in types.keys():
+    types[__t] = get_hasher(__t)
+
 kill = False  # global kill for threads
 for _k in types.copy().keys():
     if "sha" in _k:
@@ -81,6 +106,11 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
 @click.option("--sha256", is_flag=True, default=False, help="Use SHA256 hashing algorithm.")
 @click.option("--sha384", is_flag=True, default=False, help="Use SHA384 hashing algorithm.")
 @click.option("--sha512", is_flag=True, default=False, help="Use SHA512 hashing algorithm.")
+@click.option("--blake2b", is_flag=True, default=False, help="Use blake2b hashing algorithm.")
+@click.option("--blake2s", is_flag=True, default=False, help="Use blake2s hashing algorithm.")
+@click.option(
+    "--all-hashes", is_flag=True, default=False, help="Use all hashing algorithms. Overrules previous hash options."
+)
 @click.argument("file", type=click.Path(exists=True, file_okay=True, readable=True, allow_dash=True))
 def main(
     no_ram: bool,
@@ -92,6 +122,9 @@ def main(
     sha256: bool,
     sha384: bool,
     sha512: bool,
+    blake2b: bool,
+    blake2s: bool,
+    all_hashes: bool,
     file: str,
 ):
     """Generates a hash for a specified file.
@@ -112,10 +145,31 @@ def main(
 
         signal.signal(signal.SIGINT, signal_handler)
 
+    if all_hashes:
+        md5 = sha1 = sha224 = sha256 = sha384 = sha512 = blake2b = blake2s = True
+
     chunk_size = block_size * 1024
     console = get_console()
-    hashes_to_gen = {"md5": md5, "sha1": sha1, "sha224": sha224, "sha256": sha256, "sha384": sha384, "sha512": sha512}
-    generated_hashes = {"md5": None, "sha1": None, "sha224": None, "sha256": None, "sha384": None, "sha512": None}
+    hashes_to_gen = {
+        "md5": md5,
+        "sha1": sha1,
+        "sha224": sha224,
+        "sha256": sha256,
+        "sha384": sha384,
+        "sha512": sha512,
+        "blake2b": blake2b,
+        "blake2s": blake2s,
+    }
+    generated_hashes = {
+        "md5": None,
+        "sha1": None,
+        "sha224": None,
+        "sha256": None,
+        "sha384": None,
+        "sha512": None,
+        "blake2b": None,
+        "blake2s": None,
+    }
     [generated_hashes.update({k: "incomplete"}) for k in hashes_to_gen.keys() if hashes_to_gen[k]]
     [generated_hashes.pop(k) for k in hashes_to_gen.keys() if not hashes_to_gen[k]]
 
@@ -285,5 +339,89 @@ def main(
         console.print(f"[cyan]{hash_name}[/]: {hash_value}")
 
 
+@click.command()
+@click.option("--no-ram", is_flag=True, help="Disable caching to RAM for hash checking.")
+@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice([x for x in types.keys() if 'blake' not in x] + ["auto"]), default="auto")
+@click.argument("hash")
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, readable=True, allow_dash=True))
+def verify(no_ram: bool, hash_type: str, hash: str, file: str):
+    """Verifies a file's hash. You're better off using an external tool to do this because this is really inefficient"""
+    console = get_console()
+    console.log(no_ram, hash_type, hash, file)
+    console.log(
+        "[red]:warning: Warning: This function is extremely unoptimized, slow, and possibly unreliable. You are better off using an external tool to verify hashes."
+    )
+    sizes = {
+        "md5": 32,
+        "sha1": 40,
+        "sha224": 56,
+        "sha256": 64,
+        "sha384": 96,
+        "sha512": 128,
+    }
+    if hash_type == "auto":
+        for _type, _size in sizes.items():
+            if len(hash) == _size:
+                hash_type = _type
+                break
+        else:
+            console.print("[red]:x: Error: Could not determine hash type. Please specify manually via --hash-type")
+            return
+
+
+    if file == "-":
+        path = Path("stdin")
+        file = click.open_file("-", "rb")
+        size = None
+    else:
+        path = Path(file).absolute().resolve()
+        file = path.open("rb")
+        stat = path.stat(follow_symlinks=True)
+        size = stat.st_size
+
+    columns = list(Progress.get_default_columns())
+    columns.insert(0, SpinnerColumn("bouncingBar"))
+    columns.insert(-1, FileSizeColumn())
+    columns.insert(-1, TotalFileSizeColumn())
+    columns.insert(-1, TransferSpeedColumn())
+    columns.insert(-1, TimeElapsedColumn())
+    columns[-1] = TimeRemainingColumn(True)
+
+
+    with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
+        if not no_ram:
+            task = progress.add_task("Loading file into RAM...", total=size)
+            _t = 0
+            buffer = BytesIO()
+            for block in iter(lambda: file.read(1024 * 1024 * 32), b""):
+                if kill:
+                    del buffer
+                    progress.update(task, description="Loading file into ram (cancelled)")
+                    progress.stop_task(task)
+                    return
+                buffer.write(block)
+                _t += len(block)
+                progress.update(task, advance=len(block))
+            buffer.seek(0)
+            progress.update(task, total=_t)
+            size = _t
+        else:
+            buffer = file
+
+        task = progress.add_task(f"Generating {hash_type} hash", total=size)
+        file_hash = generate_hash(buffer, hash_type, task, progress, 1024 * 1024 * 32)
+        buffer.seek(0)
+    if file_hash == hash:
+        console.print(f"[green]Hashes match![/]")
+    else:
+        console.print(f"[red]Hashes do not match![/]")
+        console.print(f"[cyan]{hash_type} Provided[/]: {hash}")
+        console.print(f"[cyan]{hash_type} Calculated[/]: {file_hash}")
+
+
 if __name__ == "__main__":
-    main()
+    if sys.argv[1] == "verify":
+        sys.argv.pop(1)
+        verify()
+    else:
+        main()
