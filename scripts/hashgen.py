@@ -340,14 +340,12 @@ def main(
 
 
 @click.command()
-@click.option("--no-ram", is_flag=True, help="Disable caching to RAM for hash checking.")
 @click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice([x for x in types.keys() if 'blake' not in x] + ["auto"]), default="auto")
 @click.argument("hash")
 @click.argument("file", type=click.Path(exists=True, dir_okay=False, readable=True, allow_dash=True))
-def verify(no_ram: bool, hash_type: str, hash: str, file: str):
+def verify(hash_type: str, hash: str, file: str):
     """Verifies a file's hash. You're better off using an external tool to do this because this is really inefficient"""
     console = get_console()
-    console.log(no_ram, hash_type, hash, file)
     console.log(
         "[red]:warning: Warning: This function is extremely unoptimized, slow, and possibly unreliable. You are better off using an external tool to verify hashes."
     )
@@ -389,25 +387,7 @@ def verify(no_ram: bool, hash_type: str, hash: str, file: str):
 
 
     with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
-        if not no_ram:
-            task = progress.add_task("Loading file into RAM...", total=size)
-            _t = 0
-            buffer = BytesIO()
-            for block in iter(lambda: file.read(1024 * 1024 * 32), b""):
-                if kill:
-                    del buffer
-                    progress.update(task, description="Loading file into ram (cancelled)")
-                    progress.stop_task(task)
-                    return
-                buffer.write(block)
-                _t += len(block)
-                progress.update(task, advance=len(block))
-            buffer.seek(0)
-            progress.update(task, total=_t)
-            size = _t
-        else:
-            buffer = file
-
+        buffer = file
         task = progress.add_task(f"Generating {hash_type} hash", total=size)
         file_hash = generate_hash(buffer, hash_type, task, progress, 1024 * 1024 * 32)
         buffer.seek(0)
