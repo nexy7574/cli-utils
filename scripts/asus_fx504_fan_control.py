@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""
+WARNING!
+This script is not tested on other laptops.
+My current laptop model is `Asus FX504GD`, running Arch Linux.
+
+DISCLAIMER THAT I DO NOT ACCEPT LIABILITY FOR ANY DAMAGES THIS SCRIPT MAY CAUSE TO YOUR COMPUTER!
+THE DEFAULT FAN CONTROL SETTINGS ARE ALWAYS THE BEST, AND LOWERING THEM MAY RESULT IN THERMAL DAMAGE TO COMPONENTS
+AND MAY CAUSE YOUR COMPUTER TO OVERHEAT AND BURN DOWN YOUR HOUSE AND MAKE YOU LOSE ALL YOUR LEMONS!
+
+Seriously though, while it is unlikely to cause any damage, I am not responsible for any damage this script may cause.
+Lowering the fan "boost" mode and then doing something CPU/GPU intensive over a long period of time may raise
+temperatures beyond their safe operating limit, even with thermal throttling, which may result in damage to your computer.
+
+Use at your own risk.
+
+If your computer does not support the interface that this script uses, it will not make any modifications.
+The first thing the script does is check for the existence of the interface, and if it does not exist, it will exit.
+"""
+import io
+import os
+import sys
+import subprocess
+
+import click
+from pathlib import Path
+
+__PATH__ = Path("/sys/devices/platform/asus-nb-wmi/fan_boost_mode")
+
+import elevate
+
+MODES = ["balanced", "overboost", "silent"]
+
+
+@click.group()
+def main():
+    """
+    ASUS FX504 fan control script.
+    """
+    if not __PATH__.exists():
+        click.echo("This script is not supported on your computer (fan_boost_mode not found in FS).")
+        sys.exit(4)
+
+@main.command(name="get-mode")
+def get_mode():
+    """
+    Get the current fan mode.
+    """
+    cur = __PATH__.read_text().strip()
+    click.echo(f"Current fan mode: {MODES[int(cur)]} ({cur})")
+
+@main.command(name="set-mode")
+@click.argument("mode", type=click.Choice(MODES))
+def set_mode(mode: str):
+    """
+    Sets the current fan mode.
+
+    Note that changes may take a few minutes to fully apply.
+    """
+    if os.getuid() != 0:
+        click.echo("This script must be run as root to modify the fan mode.")
+        old_argv = sys.argv[:]
+        sys.argv[0] = (os.getcwd() + "/" + sys.argv[0])
+        elevate.elevate()
+        sys.argv = old_argv
+    click.echo(f"Setting fan mode to {mode}...")
+    try:
+        __PATH__.write_text(str(MODES.index(mode)))
+    except (IOError, PermissionError, subprocess.CalledProcessError) as e:
+        click.echo(f"Failed to set fan mode: {e}")
+        sys.exit(1)
+    click.echo(f"Current fan mode: {MODES[int(__PATH__.read_text().strip())]}")
+    click.echo("Done. Note that changes may take a few minutes to apply.")
+
+
+if __name__ == "__main__":
+    main()

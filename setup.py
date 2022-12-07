@@ -1,3 +1,5 @@
+import glob
+
 from setuptools import setup
 from subprocess import run
 
@@ -20,6 +22,9 @@ setup(
     description="A set of CLI tools that I use.",
     install_requires=requirements,
     python_requires=">=3.9",
+    extras_require={
+        "gui": ["PyQt5==5.15.7"],
+    },
     entry_points={
         "console_scripts": [
             "ensure-upnp = scripts.ensure_upnp:main",
@@ -32,7 +37,8 @@ setup(
             "hashgen-verify = scripts.hashgen:verify",
             "ruin = scripts.ruin:main",
             "arriva = scripts.arriva:main",
-            "wg-manager = scripts.wg_manager:main"
+            "wg-manager = scripts.wg_manager:main",
+            "afan = scripts.asus_fx504_fan_control:main"
         ]
     },
 )
