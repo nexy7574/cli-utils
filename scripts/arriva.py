@@ -54,7 +54,7 @@ def qs_to_dict(url: str, flatten: bool = False) -> dict:
 
 
 def do_request(
-    session: requests.Session | requests, url: str, stage: str, *args, method: str = "GET", **kwargs
+    session, url: str, stage: str, *args, method: str = "GET", **kwargs
 ) -> requests.Response | None:
     with console.status("GET " + textwrap.shorten(url, 100)):
         try:
