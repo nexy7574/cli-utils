@@ -256,6 +256,20 @@ def main(yes: bool):
                     console.log("[green]:white_check_mark: You should now have access to the internet over VPN.")
                     console.log("HTTPBin data:")
                     console.print_json(data=response.json(), indent=4)
+
+                    if Confirm.ask("Do you want to do a latency check?", console=console):
+                        times = []
+                        for i in range(10):
+                            start = time.time()
+                            response = do_request(requests, "https://httpbin.org/anything", "httpbin")
+                            if not response or response.status_code != 200:
+                                end = time.time_ns()
+                            else:
+                                end = time.time()
+                            times.append(end - start)
+                        console.log("[dim]Average Latency: {:.2f}ms".format(sum(times) / len(times) * 1000))
+                        console.log("[dim]Max Latency: {:.2f}ms".format(max(times) * 1000))
+                        console.log("[dim]Min Latency: {:.2f}ms".format(min(times) * 1000))
     else:
         console.log("[red]Failed to connect to internet - are you connected to wifi?")
         return
