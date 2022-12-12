@@ -13,21 +13,6 @@ from rich import get_console
 from rich.prompt import Prompt, Confirm
 from rich.progress import Progress, TextColumn, SpinnerColumn, MofNCompleteColumn
 
-
-try:
-    if os.getuid() != 0:
-        get_console().log(
-            "[yellow bold]You are not root. Some files and directories may not be able to be indexed or deleted.[/]"
-        )
-        if Confirm.ask("Would you like to elevate to root? (may call `sudo`)", default=True):
-            try:
-                elevate()
-            except Exception as e:
-                get_console().log(f"[red]Failed to elevate to root: {e}[/]")
-except AttributeError:
-    pass
-
-
 # noinspection DuplicatedCode
 class Main:
     def __init__(self, *, path: Path = None, skip_confirm: bool, dry: bool, quiet: bool, threaded: bool):
@@ -139,7 +124,7 @@ class Main:
         return Progress(*columns, console=self.console, expand=True, refresh_per_second=24, transient=True)
 
     def per_second(self) -> int:
-        return round(self.deleted_files + self.deleted_directories / (time.time() - self.start))
+        return round((self.deleted_files + self.deleted_directories) / (time.time() - self.start))
 
     def run(self):
         self.get_root()
@@ -221,6 +206,18 @@ def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
     """Visually remove files and directories with verbose logging and rich progress information.
 
     Note that the built-in `rm` is much faster and more reliable than this program."""
+    try:
+        if os.getuid() != 0:
+            get_console().log(
+                "[yellow bold]You are not root. Some files and directories may not be able to be indexed or deleted.[/]"
+            )
+            if Confirm.ask("Would you like to elevate to root? (may call `sudo`)", default=True):
+                try:
+                    elevate()
+                except Exception as e:
+                    get_console().log(f"[red]Failed to elevate to root: {e}[/]")
+    except AttributeError:
+        pass
     _runner = Main(path=Path(path), skip_confirm=yes, dry=dry, quiet=quiet, threaded=not no_threads)
     try:
         _runner.run()
