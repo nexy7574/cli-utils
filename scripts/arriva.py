@@ -55,7 +55,7 @@ def qs_to_dict(url: str, flatten: bool = False) -> dict:
 
 
 def do_request(session, url: str, stage: str, *args, method: str = "GET", **kwargs) -> requests.Response | None:
-    with console.status("GET " + textwrap.shorten(url, 100)):
+    with console.status("GET " + (url[:95] + "[...]" if len(url) >= 100 else url)):
         try:
             start = time.time()
             response = session.request(method, url, *args, **kwargs)
@@ -267,7 +267,7 @@ def main(yes: bool):
         console.log("[green]:white_check_mark: You should now have access to the internet.")
         console.log("HTTPBin data:")
         console.print_json(data=response.json(), indent=4)
-        if Confirm.ask("Would you like to start the a VPN?", console=console):
+        if yes or Confirm.ask("Would you like to start a VPN?", console=console):
             vpns = vpn_list()
             choice = Prompt.ask(
                 "Which VPN should be activated?",
@@ -283,7 +283,7 @@ def main(yes: bool):
             else:
                 console.log("[yellow]:warning: Failed to activate VPN - You still have access to wifi.")
 
-        if Confirm.ask("Do you want to do a latency check?", console=console):
+        if yes or Confirm.ask("Do you want to do a latency check?", console=console):
             times = []
             for i in range(10):
                 start = time.time()
