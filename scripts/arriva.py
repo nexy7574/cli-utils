@@ -269,30 +269,37 @@ def main(yes: bool):
         console.print_json(data=response.json(), indent=4)
         if yes or Confirm.ask("Would you like to start a VPN?", console=console):
             vpns = vpn_list()
-            choice = Prompt.ask(
-                "Which VPN should be activated?",
-                choices=vpns,
-                default="Laptop" if "Laptop" in vpns else vpns[0],
-                console=console,
-            )
-            success = atomically_enable_vpn(choice)
-            if success:
-                console.log("[green]:white_check_mark: You should now have access to the internet over VPN.")
-                console.log("HTTPBin data:")
-                console.print_json(data=response.json(), indent=4)
+            try:
+                choice = Prompt.ask(
+                    "Which VPN should be activated?",
+                    choices=vpns,
+                    default="Laptop" if "Laptop" in vpns else vpns[0],
+                    console=console,
+                )
+            except KeyboardInterrupt:
+                console.log("[i dim]VPN Activation cancelled")
             else:
-                console.log("[yellow]:warning: Failed to activate VPN - You still have access to wifi.")
+                success = atomically_enable_vpn(choice)
+                if success:
+                    console.log("[green]:white_check_mark: You should now have access to the internet over VPN.")
+                    console.log("HTTPBin data:")
+                    console.print_json(data=response.json(), indent=4)
+                else:
+                    console.log("[yellow]:warning: Failed to activate VPN - You still have access to wifi.")
 
         if yes or Confirm.ask("Do you want to do a latency check?", console=console):
             times = []
-            for i in range(10):
-                start = time.time()
-                response = do_request(requests, "https://httpbin.org/anything", "httpbin")
-                if not response or response.status_code != 200:
-                    end = time.time_ns()
-                else:
-                    end = time.time()
-                times.append(end - start)
+            try:
+                for i in range(10):
+                    start = time.time()
+                    response = do_request(requests, "https://httpbin.org/anything", "httpbin")
+                    if not response or response.status_code != 200:
+                        end = time.time_ns()
+                    else:
+                        end = time.time()
+                    times.append(end - start)
+            except KeyboardInterrupt:
+                pass
             console.log("[dim]Average Latency: {:.2f}ms".format(sum(times) / len(times) * 1000))
             console.log("[dim]Max Latency: {:.2f}ms".format(max(times) * 1000))
             console.log("[dim]Min Latency: {:.2f}ms".format(min(times) * 1000))
