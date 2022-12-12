@@ -36,6 +36,7 @@ def get_hasher(name: str) -> callable:
     try:
         func = hashlib.new(name)
     except ValueError:
+
         class _Dummy:
             def __init__(self):
                 self.name = name
@@ -189,10 +190,7 @@ def main(
             f"[i]No action taken.[/][/yellow]"
         )
 
-    generated_hashes = {
-        k: None
-        for k in hashes_to_gen.keys()
-    }
+    generated_hashes = {k: None for k in hashes_to_gen.keys()}
     [generated_hashes.update({k: "incomplete"}) for k in hashes_to_gen.keys() if hashes_to_gen[k]]
     [generated_hashes.pop(k) for k in hashes_to_gen.keys() if not hashes_to_gen[k]]
 
@@ -363,7 +361,14 @@ def main(
 
 
 @click.command()
-@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice([x for x in types.keys() if 'blake' not in x] + ["auto"]), default="auto")
+@click.option(
+    "--hash-type",
+    "--type",
+    "-T",
+    "hash_type",
+    type=click.Choice([x for x in types.keys() if "blake" not in x] + ["auto"]),
+    default="auto",
+)
 @click.argument("hash")
 @click.argument("file", type=click.Path(exists=True, dir_okay=False, readable=True, allow_dash=True))
 def verify(hash_type: str, hash: str, file: str):
@@ -389,7 +394,6 @@ def verify(hash_type: str, hash: str, file: str):
             console.print("[red]:x: Error: Could not determine hash type. Please specify manually via --hash-type")
             return
 
-
     if file == "-":
         path = Path("stdin")
         file = click.open_file("-", "rb")
@@ -407,7 +411,6 @@ def verify(hash_type: str, hash: str, file: str):
     columns.insert(-1, TransferSpeedColumn())
     columns.insert(-1, TimeElapsedColumn())
     columns[-1] = TimeRemainingColumn(True)
-
 
     with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
         buffer = file

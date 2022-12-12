@@ -14,7 +14,7 @@ command:
 
 This will link /etc/wireguard/Laptop.conf to your own config file, and the script will use that instead.
 """
-
+import os
 import subprocess
 import requests
 import click
@@ -23,8 +23,9 @@ from urllib.parse import urlsplit, parse_qs
 import textwrap
 import time
 from rich import get_console
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 from functools import partial
+from pathlib import Path
 
 console = get_console()
 # params = {
@@ -53,9 +54,7 @@ def qs_to_dict(url: str, flatten: bool = False) -> dict:
     return params
 
 
-def do_request(
-    session, url: str, stage: str, *args, method: str = "GET", **kwargs
-) -> requests.Response | None:
+def do_request(session, url: str, stage: str, *args, method: str = "GET", **kwargs) -> requests.Response | None:
     with console.status("GET " + textwrap.shorten(url, 100)):
         try:
             start = time.time()
@@ -145,11 +144,55 @@ def check_arriva_wifi_connection(yes: bool = False):
     return True
 
 
+def vpn_list():
+    _vpns = []
+    _dir = Path("/etc/wireguard")
+    if os.access(_dir, os.R_OK):
+        for f in _dir.iterdir():
+            if f.name.endswith(".conf"):
+                _vpns.append(f.name[:-5])
+    _vpns = _vpns or ["Laptop", "Laptop-Pi", "Laptop-Internal", "Laptop-SS"]
+    return _vpns
+
+
 def kill_vpns():
     with console.status("Bringing down VPN (if its up)"):
-        _vpns = ("Laptop", "Laptop-Pi", "Laptop-Internal", "Laptop-SS")
-        for vpn in _vpns:
+        for vpn in vpn_list():
             subprocess.run(("wg-quick", "down", vpn), capture_output=True)
+
+
+def atomically_enable_vpn(name: str):
+    with console.status(f"Starting VPN {name!r}"):
+        x = subprocess.run(("wg-quick", "up", name), capture_output=True)
+    if x.returncode != 0:
+        console.log(f"[red]Failed to start VPN {name!r}.")
+        console.log("[red]Attempting to reverse VPN connection")
+        with console.status("Reversing VPN connection"):
+            x = subprocess.run(("wg-quick", "down", name))
+        if x.returncode != 0:
+            console.log("[red]Failed to reverse VPN connection.")
+            console.log("[red]Please check your VPN configuration.")
+            return False
+        else:
+            console.log(f"[yellow]:warning: VPN connection {name!r} reversed.")
+            return False
+    else:
+        console.log("[green]:white_check_mark: VPN connection started.")
+        console.log("[dim]Checking VPN connectivity...")
+        response = do_request(requests, "https://httpbin.org/anything", "httpbin")
+        if not response or response.status_code != 200:
+            console.log("[red]Failed to connect to internet - are you connected to wifi?")
+            console.log("[red]Attempting to reverse VPN connection")
+            with console.status("Reversing VPN connection"):
+                x = subprocess.run(("wg-quick", "down", "Laptop"), capture_output=True)
+            if x.returncode != 0:
+                console.log("[red]Failed to reverse VPN connection.")
+                console.log("[red]Please check your VPN configuration.")
+                return False
+            else:
+                console.log("[yellow]:warning: VPN connection reversed.")
+                return False
+    return True
 
 
 @click.command()
@@ -209,7 +252,7 @@ def main(yes: bool):
         if params["res"] == "success":
             console.log("[green]:white_check_mark: You should now have access to arriva's free wifi.")
         else:
-            console.log("[yellow]Went through the auth flow and got '{}' for res.")
+            console.log("[yellow]Went through the auth flow and got '{}' for res.".format(params["res"]))
             return
     else:
         console.log("[red] " + response.text)
@@ -224,52 +267,35 @@ def main(yes: bool):
         console.log("[green]:white_check_mark: You should now have access to the internet.")
         console.log("HTTPBin data:")
         console.print_json(data=response.json(), indent=4)
-        if Confirm.ask("Would you like to start the 'Laptop' VPN?", console=console):
-            with console.status("Starting VPN"):
-                x = subprocess.run(("wg-quick", "up", "Laptop"), capture_output=True)
-            if x.returncode != 0:
-                console.log("[red]Failed to start VPN.")
-                console.log("[red]Attempting to reverse VPN connection")
-                with console.status("Reversing VPN connection"):
-                    x = subprocess.run(("wg-quick", "down", "Laptop"), capture_output=True)
-                if x.returncode != 0:
-                    console.log("[red]Failed to reverse VPN connection.")
-                    console.log("[red]Please check your VPN configuration.")
-                else:
-                    console.log("[yellow]:warning: VPN connection reversed.")
+        if Confirm.ask("Would you like to start the a VPN?", console=console):
+            vpns = vpn_list()
+            choice = Prompt.ask(
+                "Which VPN should be activated?",
+                choices=vpns,
+                default="Laptop" if "Laptop" in vpns else vpns[0],
+                console=console,
+            )
+            success = atomically_enable_vpn(choice)
+            if success:
+                console.log("[green]:white_check_mark: You should now have access to the internet over VPN.")
+                console.log("HTTPBin data:")
+                console.print_json(data=response.json(), indent=4)
             else:
-                console.log("[green]:white_check_mark: VPN connection started.")
-                console.log("[dim]Checking VPN connectivity...")
+                console.log("[yellow]:warning: Failed to activate VPN - You still have access to wifi.")
+
+        if Confirm.ask("Do you want to do a latency check?", console=console):
+            times = []
+            for i in range(10):
+                start = time.time()
                 response = do_request(requests, "https://httpbin.org/anything", "httpbin")
                 if not response or response.status_code != 200:
-                    console.log("[red]Failed to connect to internet - are you connected to wifi?")
-                    console.log("[red]Attempting to reverse VPN connection")
-                    with console.status("Reversing VPN connection"):
-                        x = subprocess.run(("wg-quick", "down", "Laptop"), capture_output=True)
-                    if x.returncode != 0:
-                        console.log("[red]Failed to reverse VPN connection.")
-                        console.log("[red]Please check your VPN configuration.")
-                    else:
-                        console.log("[yellow]:warning: VPN connection reversed.")
-                    return
+                    end = time.time_ns()
                 else:
-                    console.log("[green]:white_check_mark: You should now have access to the internet over VPN.")
-                    console.log("HTTPBin data:")
-                    console.print_json(data=response.json(), indent=4)
-
-                    if Confirm.ask("Do you want to do a latency check?", console=console):
-                        times = []
-                        for i in range(10):
-                            start = time.time()
-                            response = do_request(requests, "https://httpbin.org/anything", "httpbin")
-                            if not response or response.status_code != 200:
-                                end = time.time_ns()
-                            else:
-                                end = time.time()
-                            times.append(end - start)
-                        console.log("[dim]Average Latency: {:.2f}ms".format(sum(times) / len(times) * 1000))
-                        console.log("[dim]Max Latency: {:.2f}ms".format(max(times) * 1000))
-                        console.log("[dim]Min Latency: {:.2f}ms".format(min(times) * 1000))
+                    end = time.time()
+                times.append(end - start)
+            console.log("[dim]Average Latency: {:.2f}ms".format(sum(times) / len(times) * 1000))
+            console.log("[dim]Max Latency: {:.2f}ms".format(max(times) * 1000))
+            console.log("[dim]Min Latency: {:.2f}ms".format(min(times) * 1000))
     else:
         console.log("[red]Failed to connect to internet - are you connected to wifi?")
         return

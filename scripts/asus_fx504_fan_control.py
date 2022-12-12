@@ -46,6 +46,7 @@ def main():
         click.echo("This script is not supported on your computer (fan_boost_mode not found in FS).")
         sys.exit(4)
 
+
 @main.command(name="get-mode")
 def get_mode():
     """
@@ -53,6 +54,7 @@ def get_mode():
     """
     cur = __PATH__.read_text().strip()
     click.echo(f"Current fan mode: {MODES[int(cur)]} ({cur})")
+
 
 @main.command(name="set-mode")
 @click.argument("mode", type=click.Choice(MODES))
@@ -66,7 +68,7 @@ def set_mode(mode: str):
         click.echo("This script must be run as root to modify the fan mode.")
         old_argv = sys.argv[:]
         if sys.argv[0].endswith(".py"):
-            sys.argv[0] = (os.getcwd() + "/" + sys.argv[0])
+            sys.argv[0] = os.getcwd() + "/" + sys.argv[0]
         elevate.elevate()
         sys.argv = old_argv
     click.echo(f"Setting fan mode to {mode}...")
