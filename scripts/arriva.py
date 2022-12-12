@@ -197,7 +197,23 @@ def atomically_enable_vpn(name: str):
 
 @click.command()
 @click.option("--yes", "-Y", is_flag=True, help="Skip confirmation prompts (assume YES)")
-def main(yes: bool):
+@click.option("--vpn-profile", "--vpn", "--profile", "-V", default="%ASK%", help="Which VPN to activate")
+def main(yes: bool, vpn_profile: str):
+    """
+    Command that runs through activating the Arriva Wi-Fi.
+
+    This script is designed to automate the free Wi-Fi authentication flow on Arriva buses, with some helpful utils
+    built in, such as VPN automation and latency testing.
+
+    This script is not very useful for most people.
+
+    -----------------------------------------------
+
+    --yes: Will respond `yes` to any confirmation prompts. !!This does not skip all prompts, just the ones that ask
+    for a yes or a no!!
+
+    --vpn-profile: only really useful if --yes is present - uses this VPN profile name instead of asking for it.
+    """
     kill_vpns()
     okay = check_arriva_wifi_connection(yes)
     if not okay:
@@ -270,12 +286,15 @@ def main(yes: bool):
         if yes or Confirm.ask("Would you like to start a VPN?", console=console):
             vpns = vpn_list()
             try:
-                choice = Prompt.ask(
-                    "Which VPN should be activated?",
-                    choices=vpns,
-                    default="Laptop" if "Laptop" in vpns else vpns[0],
-                    console=console,
-                )
+                if vpn_profile == "%ASK":
+                    choice = Prompt.ask(
+                        "Which VPN should be activated?",
+                        choices=vpns,
+                        default="Laptop" if "Laptop" in vpns else vpns[0],
+                        console=console,
+                    )
+                else:
+                    choice = vpn_profile
             except KeyboardInterrupt:
                 console.log("[i dim]VPN Activation cancelled")
             else:
