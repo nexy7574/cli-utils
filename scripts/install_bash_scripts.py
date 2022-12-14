@@ -52,8 +52,10 @@ def main():
         print("Installing to " + str(bin_dir))
 
     bin_dir.mkdir(exist_ok=True, parents=True)
-    to_copy = glob(str(clone_dir / "scripts") + "/*.bash", recursive=False, include_hidden=False)
+    to_copy = glob(str(clone_dir / "scripts") + "/*.bash", recursive=False)
     for file in to_copy:
+        if file.startswith(("_", ".")):
+            continue
         new_name = file[:-5]
         print("Copying " + file)
         copy(file, bin_dir)
