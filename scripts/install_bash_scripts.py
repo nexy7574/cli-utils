@@ -17,6 +17,7 @@ def main():
 
     print("Temporary directory: " + str(temp_dir()))
     clone_dir = temp_dir() / ("cli-utils-bash-scripts-" + os.urandom(8).hex())
+    clone_dir.mkdir()
     print("Cloning git repo into " + str(clone_dir))
     try:
         subprocess.run(
