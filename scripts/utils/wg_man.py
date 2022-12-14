@@ -5,6 +5,12 @@ import humanize
 from rich.tree import Tree
 
 
+__all__ = (
+    "get_interface_stats",
+    "generate_tree"
+)
+
+
 def get_interface_stats(sudo: str, interface_name: str) -> dict:
     """Gets an interface details as JSON"""
     data = {

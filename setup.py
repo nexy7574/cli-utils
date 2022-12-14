@@ -38,7 +38,8 @@ setup(
             "ruin = scripts.ruin:main",
             "arriva = scripts.arriva:main",
             "wg-manager = scripts.wg_manager:main",
-            "afan = scripts.asus_fx504_fan_control:main"
+            "afan = scripts.asus_fx504_fan_control:main",
+            "cli-utils-install-extra = scripts.install_bash_scripts:main",
         ]
     },
 )
