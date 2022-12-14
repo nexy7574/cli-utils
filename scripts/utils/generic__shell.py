@@ -18,7 +18,7 @@ __all__ = (
 def command_exists(command: str) -> bool:
     """Checks if a command is installed & usable."""
     try:
-        subprocess.run([command], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["which", command], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
         return False
     else:
