@@ -286,7 +286,7 @@ def main(yes: bool, vpn_profile: str):
         if yes or Confirm.ask("Would you like to start a VPN?", console=console):
             vpns = vpn_list()
             try:
-                if vpn_profile == "%ASK":
+                if vpn_profile == "%ASK%":
                     choice = Prompt.ask(
                         "Which VPN should be activated?",
                         choices=vpns,
