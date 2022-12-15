@@ -5,7 +5,7 @@ import sys
 import subprocess
 from pathlib import Path
 from glob import glob
-from shutil import copy
+from shutil import copy, move
 
 from scripts.utils.generic__shell import command_exists, temp_dir, stderr, home
 
@@ -54,13 +54,16 @@ def main():
     for file in to_copy:
         if file.startswith(("_", ".")):
             continue
-        new_name = file[:-5]
+        new_name = Path(file)
         print("Copying " + file)
         copy(file, bin_dir)
-        print("Renaming " + str(bin_dir / file) + " to " + str(bin_dir / new_name))
-        os.rename(bin_dir / file, bin_dir / new_name)
-        print("Making executable")
-        os.chmod(bin_dir / new_name, 0o755)
+
+        new_path = bin_dir / new_name.name
+        print("Making " + str(new_path) + " executable")
+        new_path.chmod(0o755)
+
+        print("Renaming " + str(new_path) + " to " + str(new_name.name[:-5]))
+        move(new_path, bin_dir / new_name.name[:-5])
     print("Done.")
 
 
