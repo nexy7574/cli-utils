@@ -36,16 +36,11 @@ import elevate
 
 MODES = ["balanced", "overboost", "silent"]
 MODES_AND_ALIASES = {
-    "balanced": [
-        "balanced", "b", "ba", "normal", "n", "default", "d", "0"
-    ],
-    "overboost": [
-        "overboost", "o", "boost", "bo", "1"
-    ],
-    "silent": [
-        "silent", "s", "quiet", "q", "2"
-    ]
+    "balanced": ["balanced", "b", "ba", "normal", "n", "default", "d", "0"],
+    "overboost": ["overboost", "o", "boost", "bo", "1"],
+    "silent": ["silent", "s", "quiet", "q", "2"],
 }
+
 
 @click.group()
 def main():

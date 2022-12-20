@@ -6,13 +6,7 @@ from pathlib import Path
 from tempfile import gettempdir
 
 
-__all__ = (
-    "command_exists",
-    "is_windows",
-    "home",
-    "temp_dir",
-    "stderr"
-)
+__all__ = ("command_exists", "is_windows", "home", "temp_dir", "stderr")
 
 
 def command_exists(command: str) -> bool:

@@ -9,6 +9,7 @@ from shutil import copy, move
 
 from scripts.utils.generic__shell import command_exists, temp_dir, stderr, home
 
+
 def main():
     print("Checking for dependencies...")
     if not command_exists("git"):
@@ -21,15 +22,7 @@ def main():
     print("Cloning git repo into " + str(clone_dir))
     try:
         subprocess.run(
-            (
-                "git",
-                "clone",
-                "-q",
-                "--depth=1",
-                "https://github.com/EEKIM10/cli-utils.git",
-                str(clone_dir)
-            ),
-            check=True
+            ("git", "clone", "-q", "--depth=1", "https://github.com/EEKIM10/cli-utils.git", str(clone_dir)), check=True
         )
     except subprocess.CalledProcessError:
         stderr("ERROR: git clone failed.")

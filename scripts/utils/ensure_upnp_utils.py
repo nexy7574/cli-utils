@@ -2,12 +2,7 @@ import textwrap
 from rich.table import Table
 
 
-__all__ = (
-    "resolve_name",
-    "is_sane_port_number",
-    "render_mapping_table",
-    "generate_rule_info"
-)
+__all__ = ("resolve_name", "is_sane_port_number", "render_mapping_table", "generate_rule_info")
 
 
 def resolve_name(entry: dict) -> str:
