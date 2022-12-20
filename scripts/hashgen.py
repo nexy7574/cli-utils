@@ -1,5 +1,6 @@
 import copy
 import sys
+from functools import partial
 
 from rich import get_console
 from rich.progress import (
@@ -17,6 +18,7 @@ from rich.prompt import Confirm
 import hashlib
 import click
 from pathlib import Path
+from humanize import naturalsize
 
 # from multiprocessing import Pool
 from threading import Thread
@@ -143,6 +145,7 @@ def main(
     """Generates a hash for a specified file.
 
     This tool is most useful for generating hashes of large files, as it includes progress."""
+    console = get_console()
     global kill
     _fn = file
     multi_core = not single_thread
@@ -150,20 +153,37 @@ def main(
 
         def signal_handler(*_):
             global kill
-            for _task in progress.tasks:
-                if _task.completed != _task.total:
-                    progress.update(_task.id, description=_task.description + " (Cancelling)")
+            try:
+                for _task in progress.tasks:
+                    if _task.completed != _task.total:
+                        progress.update(_task.id, description=_task.description + " (Cancelling)")
+            except NameError:
+                # Killed before progress bar was created
+                pass
             kill = True
-            console.print("Interrupt handled, stopping threads.")
+            console.print("Interrupt handled, stopping threads (ctrl+d to force exit).")
 
         signal.signal(signal.SIGINT, signal_handler)
 
     if all_hashes:
+        if not no_ram:
+            console.print(
+                ":warning: If you intend to load the file into RAM before hashing with all hashes, you're insane."
+            )
+            console.print(":warning: If you want to cancel this behaviour, you should pass `--no-ram`.")
+            console.print(
+                ":warning: If the file you're trying to hash is too big, RAM caching will be automatically mitigated."
+            )
+            console.print(
+                "[yellow]:warning: If the file you're trying to hash doesn't have a size value, "
+                "then this will crash your computer if you let it load. [red]You have been warned."
+            )
+            console.print("[i yellow]No action taken.")
+            console.print()
         md5 = sha1 = sha224 = sha256 = sha384 = sha512 = blake2b = blake2s = sha3_224 = sha3_256 = sha3_384 = True
         sha3_512 = sm3 = ripe_md_160 = shake_128 = shake_256 = True
 
     chunk_size = block_size * 1024
-    console = get_console()
     hashes_to_gen = {
         "md5": md5,
         "sha1": sha1,
@@ -187,7 +207,7 @@ def main(
         console.print(
             f"[yellow]:warning: You have selected {hash_count} hashing algorithms, and enabled multi-threaded hashing, "
             f"however you only have {cpu_count} CPU cores. This may cause performance issues.\n"
-            f"[i]No action taken.[/][/yellow]"
+            f"[i]No action taken.[/][/yellow]\n"
         )
 
     generated_hashes = {k: None for k in hashes_to_gen.keys()}
@@ -215,25 +235,21 @@ def main(
     if not no_ram:
         free_ram = psutil.virtual_memory().available
         proc_used_ram = psutil.Process().memory_info().vms
-        proc_used_ram_mb = round(proc_used_ram / 1024 / 1024)
-        file_mb = round(size / 1024 / 1024)
-        file_gb = round(size / 1024 / 1024 / 1024)
-        free_gb = round(free_ram / 1024 / 1024 / 1024)
+        proc_used_ram_mb = proc_used_ram / 1024**2
+        _size = partial(naturalsize, binary=True)
         if size is None:
             console.print(
                 f"[red]:warning: File size is unknown as reading from stdin. If the file is larger than available"
-                f" free RAM ({free_gb:,}GiB), this may cause issues."
+                f" free RAM ({_size(free_ram)}), this may cause issues."
             )
         else:
             resolved_size = size * len(hashes_to_gen)
             if resolved_size >= free_ram:
-                resolved_gb = round(resolved_size / 1024 / 1024 / 1024)
-
                 switched_to_single = False
 
                 console.print(
-                    f"[red]:warning: File ({file_mb:,}MiB, {resolved_gb:,}GiB for {len(hashes_to_gen)} threads)"
-                    f" is larger than available free RAM ({free_ram:,} bytes)."
+                    f"[red]:warning: File ({_size(size)}, {_size(resolved_size)} for "
+                    f"{len(hashes_to_gen)} threads) is larger than available free RAM ({_size(free_ram)})."
                 )
 
                 if size < free_ram:
@@ -262,23 +278,23 @@ def main(
 
                     table.add_row(
                         "Multi-threaded, from RAM",
-                        f"{resolved_gb:,}GiB",
-                        f"{free_gb:,}GiB",
+                        f"{_size(resolved_size)}",
+                        f"{_size(free_ram)}",
                         _yn[resolved_size < free_ram],
                     )
                     table.add_row(
-                        "Single-threaded, from RAM", f"{file_gb:,}GiB", f"{free_gb:,}GiB", _yn[size < free_ram]
+                        "Single-threaded, from RAM", f"{_size(size)}", f"{_size(free_ram)}", _yn[size < free_ram]
                     )
                     table.add_row(
                         "Multi-threaded, from disk",
-                        f"~{proc_used_ram_mb + 100 * len(hashes_to_gen):,}MiB",
-                        f"{free_gb:,}GiB",
+                        f"~{_size((proc_used_ram + 10240) * len(hashes_to_gen))}",
+                        f"{_size(free_ram)}",
                         _yn[proc_used_ram + 100 * len(hashes_to_gen) < free_ram],
                     )
                     table.add_row(
                         "Single-threaded, from disk",
-                        f"~{proc_used_ram_mb + 100:,}MiB",
-                        f"{free_gb:,}GiB",
+                        f"~{_size(proc_used_ram + 10240)}",
+                        f"{_size(free_ram)}",
                         _yn[proc_used_ram + 100 < free_ram],
                     )
                     console.print(table)
