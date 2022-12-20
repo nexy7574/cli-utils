@@ -35,7 +35,17 @@ __PATH__ = Path("/sys/devices/platform/asus-nb-wmi/fan_boost_mode")
 import elevate
 
 MODES = ["balanced", "overboost", "silent"]
-
+MODES_AND_ALIASES = {
+    "balanced": [
+        "balanced", "b", "ba", "normal", "n", "default", "d", "0"
+    ],
+    "overboost": [
+        "overboost", "o", "boost", "bo", "1"
+    ],
+    "silent": [
+        "silent", "s", "quiet", "q", "2"
+    ]
+}
 
 @click.group()
 def main():
@@ -57,13 +67,18 @@ def get_mode():
 
 
 @main.command(name="set-mode")
-@click.argument("mode", type=click.Choice(MODES))
+@click.argument("mode", type=click.Choice([x for x in MODES_AND_ALIASES.values() for x in x]))
 def set_mode(mode: str):
     """
     Sets the current fan mode.
 
     Note that changes may take a few minutes to fully apply.
     """
+    # Get mode from alias
+    for k, v in MODES_AND_ALIASES.items():
+        if mode in v:
+            mode = k
+            break
     if os.getuid() != 0:
         click.echo("This script must be run as root to modify the fan mode.")
         old_argv = sys.argv[:]
