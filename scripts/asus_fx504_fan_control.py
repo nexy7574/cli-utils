@@ -30,6 +30,13 @@ import subprocess
 import click
 from pathlib import Path
 
+__import__("warnings").warn(
+    UserWarning(
+        "This script is no-longer maintained as I do not have the laptop this was designed for anymore. "
+        "Use at your own risk; functionality is not guaranteed."
+    )
+)
+
 __PATH__ = Path("/sys/devices/platform/asus-nb-wmi/fan_boost_mode")
 
 import elevate

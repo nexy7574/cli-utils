@@ -155,7 +155,21 @@ def config():
 @click.option("--verbose", "-v", is_flag=True, help="Increases verbosity.")
 @click.option("--ip", default=None, help="The IP to forward to. If not specified, is automatically detected.")
 @click.option("--dry-run", "--dry", is_flag=True, help="Makes no changes to forwarded ports, just simulates.")
-def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool):
+@click.option("--ignore-errors", "-i", is_flag=True, help="Sames as `upnpc -i`")
+@click.option("--ipv6", "-6", is_flag=True, help="Uses IPv6 instead of IPv4.")
+@click.option(
+    "--description", "-d", "-e", default="https://github.com/EEKIM10/cli-utils", help="Description for port forwarding."
+)
+def run(
+    headless: bool,
+    config_file: str,
+    verbose: bool,
+    ip: str,
+    dry_run: bool,
+    ignore_errors: bool,
+    ipv6: bool,
+    description: str,
+):
     if ip is None:
         ip = os.getenv("IP")
         if ip is None:
@@ -175,7 +189,7 @@ def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool)
     cfg = json.loads(conf_file.read_text())
     exec_queue = []
     for entry in cfg:
-        command = ["upnpc", "-a", ip, entry["internal_port"], entry["external_port"]]
+        command = ["upnpc", "-e", description, "-a", ip, entry["internal_port"], entry["external_port"]]
 
         if entry["protocol"] in ["TCP", "UDP"]:
             command.append(entry["protocol"])
@@ -187,6 +201,13 @@ def run(headless: bool, config_file: str, verbose: bool, ip: str, dry_run: bool)
             _c2 = command[:]
             _c2.append("udp")
             exec_queue.append(_c2)
+
+    if ipv6:
+        for command in exec_queue:
+            command.insert(1, "-6")
+    if ignore_errors:
+        for command in exec_queue:
+            command.insert(1, "-i")
 
     for entry in track(exec_queue, description="Forwarding ports", console=CONSOLE):
         CONSOLE.log("Running", f"[dim]{' '.join(map(str, entry))!r}[/]")
