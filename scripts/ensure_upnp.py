@@ -213,14 +213,14 @@ def run(
         CONSOLE.log("Running", f"[dim]{' '.join(map(str, entry))!r}[/]")
         if dry_run:
             time.sleep(random.random())
-            CONSOLE.log(f"[green]Forwarded internal port {entry[3]} to {entry[4]}")
+            CONSOLE.log(f"[green]Forwarded internal port {entry[-3]} to {entry[-2]}")
         else:
             process = subprocess.run(tuple(map(str, entry)), capture_output=True, encoding="utf-8")
             if verbose:
                 if process.returncode != 0:
                     CONSOLE.log(f"[yellow]Non-zero exit code[/]: [red]{process.returncode}")
                 else:
-                    CONSOLE.log(f"[green]Forwarded internal port {entry[3]} to {entry[4]}")
+                    CONSOLE.log(f"[green]Forwarded internal port {entry[-3]} to {entry[-2]}")
 
 
 if __name__ == "__main__":
