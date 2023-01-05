@@ -81,7 +81,7 @@ def main(
         if cfg.get("token"):
             token = cfg["token"]
         if cfg.get("zone"):
-            zone = cfg["token"]
+            zone = cfg["zone"]
         if cfg.get("ip"):
             ip = cfg["ip"]
         if cfg.get("timeout"):
