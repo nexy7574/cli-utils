@@ -21,7 +21,7 @@ setup(
     author_email="",
     description="A set of CLI tools that I use.",
     install_requires=requirements,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     extras_require={
         "gui": ["PyQt5==5.15.7"],
     },
@@ -40,6 +40,7 @@ setup(
             "wg-manager = scripts.wg_manager:main",
             "afan = scripts.asus_fx504_fan_control:main",
             "cli-utils-install-extra = scripts.install_bash_scripts:main",
+            "cf-ddns = scripts.cf_ddns:main",
         ]
     },
 )

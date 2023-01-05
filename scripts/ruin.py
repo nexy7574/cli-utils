@@ -3,7 +3,6 @@ import math
 
 import click
 import os
-import tempfile
 import pathlib
 import random
 from rich import get_console
