@@ -89,7 +89,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
             return hash_obj.hexdigest(128)
 
 
-@click.group(invoke_without_command=True)
+@click.command()
 @click.option("--no-ram", is_flag=True, help="Disable loading file into RAM beforehand.")
 @click.option(
     "--single-thread",
@@ -119,9 +119,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     "--all-hashes", is_flag=True, default=False, help="Use all hashing algorithms. Overrules previous hash options."
 )
 @click.argument("file", type=click.Path(exists=True, file_okay=True, readable=True, allow_dash=True))
-@click.pass_context
 def main(
-    ctx: click.Context,
     no_ram: bool,
     single_thread: bool,
     block_size: int,
@@ -147,9 +145,6 @@ def main(
     """Generates a hash for a specified file.
 
     This tool is most useful for generating hashes of large files, as it includes progress."""
-    if ctx.invoked_subcommand is not None:
-        click.echo("Subcommand invoked.")
-        return
     console = get_console()
     global kill
     _fn = file
@@ -381,7 +376,7 @@ def main(
         console.print(f"[cyan]{hash_name}[/]: {hash_value}")
 
 
-@main.command()
+@click.command()
 @click.option(
     "--hash-type",
     "--type",
@@ -390,11 +385,14 @@ def main(
     type=click.Choice([x for x in types.keys() if "blake" not in x] + ["auto"]),
     default="auto",
 )
-@click.argument("hash", metavar="_hash")
+@click.argument("hash")
 @click.argument("file", type=click.Path(exists=True, dir_okay=False, readable=True, allow_dash=True))
-def verify(hash_type: str, _hash: str, file: str):
+def verify(hash_type: str, hash: str, file: str):
     """Verifies a file's hash. You're better off using an external tool to do this because this is really inefficient"""
     console = get_console()
+    console.log(
+        "[red]:warning: Warning: This function is extremely unoptimized, slow, and possibly unreliable. You are better off using an external tool to verify hashes."
+    )
     sizes = {
         "md5": 32,
         "sha1": 40,
@@ -405,7 +403,7 @@ def verify(hash_type: str, _hash: str, file: str):
     }
     if hash_type == "auto":
         for _type, _size in sizes.items():
-            if len(_hash) == _size:
+            if len(hash) == _size:
                 hash_type = _type
                 break
         else:
