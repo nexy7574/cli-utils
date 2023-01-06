@@ -65,7 +65,7 @@ class Main:
             callback()
 
     def get_root(self):
-        while self.root is None:
+        while self.root is None or self.root.exists() is False:
             p = Prompt.ask("Root directory", console=self.console)
             _p_r = Path(p)
             if _p_r.exists() is False:
@@ -201,7 +201,7 @@ class Main:
 @click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt.")
 @click.option("-n", "--no-threads", is_flag=True, help="Don't use threads (may be slower for large files).")
 @click.option("-q", "--quiet", is_flag=True, help="Don't print anything other than the progress bar.")
-@click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=None)
+@click.argument("path", type=click.Path(file_okay=False, dir_okay=True), default=None)
 def main(dry: bool, yes: bool, no_threads: bool, quiet: bool, path: str = None):
     """Visually remove files and directories with verbose logging and rich progress information.
 
