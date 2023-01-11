@@ -1,7 +1,9 @@
 import copy
 import sys
+import typing
 from functools import partial
 
+import rich
 from rich import get_console
 from rich.progress import (
     Progress,
@@ -17,16 +19,20 @@ from rich.table import Table
 from rich.prompt import Confirm
 import hashlib
 import click
+from click_aliases import ClickAliasedGroup
 from pathlib import Path
 from humanize import naturalsize
 
 # from multiprocessing import Pool
 from threading import Thread
 from io import BytesIO
-from typing import BinaryIO
+from typing import BinaryIO, List, Tuple
 import psutil
 import signal
 import os
+
+if typing.TYPE_CHECKING:
+    from rich.console import Console
 
 # Multiprocessing would be used, however you can't pass IO buffers between processes.
 # This means if someone were to want to multi-hash a file, they would have to either read the file into memory n times
@@ -89,7 +95,111 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
             return hash_obj.hexdigest(128)
 
 
-@click.command()
+def generate_progress(console: "Console" = None) -> Progress:
+    """Generates a progress"""
+    columns = list(Progress.get_default_columns())
+    columns.insert(0, SpinnerColumn("bouncingBar"))
+    columns.insert(-1, FileSizeColumn())
+    columns.insert(-1, TotalFileSizeColumn())
+    columns.insert(-1, TransferSpeedColumn())
+    columns.insert(-1, TimeElapsedColumn())
+    columns[-1] = TimeRemainingColumn(True)
+    return Progress(*columns, console=console, refresh_per_second=12, expand=True)
+
+
+def can_use_ram(size: int, count: int, *, default: bool = False, console: "Console", multi_core: bool = True) -> Tuple[bool, bool, bool]:
+    no_ram = default
+    switched_to_single = False
+    hashes_to_gen = count
+    free_ram = psutil.virtual_memory().available
+    proc_used_ram = psutil.Process().memory_info().vms
+    _size = partial(naturalsize, binary=True)
+    if size is None:
+        console.print(
+            f"[red]:warning: File size is unknown as reading from stdin. If the file is larger than available"
+            f" free RAM ({_size(free_ram)}), this may cause issues."
+        )
+        return default, False, True
+    else:
+        resolved_size = size * hashes_to_gen
+        if resolved_size >= free_ram:
+            switched_to_single = False
+
+            console.print(
+                f"[red]:warning: File ({_size(size)}, {_size(resolved_size)} for "
+                f"{hashes_to_gen} threads) is larger than available free RAM ({_size(free_ram)})."
+            )
+
+            if size < free_ram:
+                console.print(
+                    "[yellow]Multihashing can still take place via RAM if the program runs single threaded.\n"
+                    "Single threaded multi-hashing is slower, as it only processes one hash at a time, however"
+                    " as it is reading from RAM, is still faster than multi-hashing from direct disk.\n"
+                    "Your options here are to either *switch to single thread hashing*, or *switch to direct disk*."
+                )
+                if Confirm.ask("Continue with single-threaded hashing? (if not, will switch to direct disk)"):
+                    multi_core = False
+                    switched_to_single = True
+
+            if not switched_to_single:
+                table = Table(title=f"RAM Requirements for this {'multi-' if count > 1 else ''}hash")
+                table.add_column("Type", justify="left")
+                table.add_column("RAM Required", justify="center")
+                table.add_column("RAM Available", justify="center")
+                table.add_column("Sufficient?", justify="center")
+                yes = "\N{white heavy check mark}"
+                no = "\N{cross mark}"
+                _yn = {
+                    True: yes,
+                    False: no,
+                }
+
+                table.add_row(
+                    "Multi-threaded, from RAM",
+                    f"{_size(resolved_size)}",
+                    f"{_size(free_ram)}",
+                    _yn[resolved_size < free_ram],
+                )
+                table.add_row(
+                    "Single-threaded, from RAM", f"{_size(size)}", f"{_size(free_ram)}", _yn[size < free_ram]
+                )
+                table.add_row(
+                    "Multi-threaded, from disk",
+                    f"~{_size((proc_used_ram + 10240) * hashes_to_gen)}",
+                    f"{_size(free_ram)}",
+                    _yn[proc_used_ram + 100 * hashes_to_gen < free_ram],
+                )
+                table.add_row(
+                    "Single-threaded, from disk",
+                    f"~{_size(proc_used_ram + 10240)}",
+                    f"{_size(free_ram)}",
+                    _yn[proc_used_ram + 100 < free_ram],
+                )
+                console.print(table)
+                console.print(
+                    "[yellow]Caching to RAM is disabled. Consider using a smaller file, "
+                    "or switching to single-threaded hashing. Direct disk causes high IO wait on slow disks, and"
+                    " is overall significantly slower than RAM cached."
+                )
+                console.print(
+                    "[yellow]For more information: https://gist.github.com/EEKIM10/4677140e36a528243fa277091954adcb"
+                )
+                no_ram = True
+
+    return not no_ram, multi_core, switched_to_single
+
+
+@click.group(cls=ClickAliasedGroup)
+def main():
+    """File hashing utility.
+
+    This utility can be used to generate a vast selection of file hashes, comparing files via their hashes, and hash validation.
+    Hashgen is useful for hashing large files, which may take a long time, as you can see what the program is doing in real time.
+    Hashgen is also highly configurable."""
+    pass
+
+
+@main.command(name="generate", aliases=["gen", "g"])
 @click.option("--no-ram", is_flag=True, help="Disable loading file into RAM beforehand.")
 @click.option(
     "--single-thread",
@@ -98,7 +208,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     default=False,
     help="Forces single-thread behaviour. May be slower than multi-threaded, but lighter on RAM.",
 )
-@click.option("--block-size", "--bs", default=1024, help="Block size for hashing (in KiB).", type=click.INT)
+@click.option("--block-size", "--bs", default=10240, help="Block size for hashing (in KiB).", type=click.INT)
 @click.option("--md5", is_flag=True, default=False, help="Use MD5 hashing algorithm.")
 @click.option("--sha1", is_flag=True, default=False, help="Use SHA1 hashing algorithm.")
 @click.option("--sha224", is_flag=True, default=False, help="Use SHA224 hashing algorithm.")
@@ -119,7 +229,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     "--all-hashes", is_flag=True, default=False, help="Use all hashing algorithms. Overrules previous hash options."
 )
 @click.argument("file", type=click.Path(exists=True, file_okay=True, readable=True, allow_dash=True))
-def main(
+def generate(
     no_ram: bool,
     single_thread: bool,
     block_size: int,
@@ -232,100 +342,18 @@ def main(
         stat = path.stat(follow_symlinks=True)
         size = stat.st_size
 
-    if not no_ram:
-        free_ram = psutil.virtual_memory().available
-        proc_used_ram = psutil.Process().memory_info().vms
-        proc_used_ram_mb = proc_used_ram / 1024**2
-        _size = partial(naturalsize, binary=True)
-        if size is None:
-            console.print(
-                f"[red]:warning: File size is unknown as reading from stdin. If the file is larger than available"
-                f" free RAM ({_size(free_ram)}), this may cause issues."
-            )
-        else:
-            resolved_size = size * len(hashes_to_gen)
-            if resolved_size >= free_ram:
-                switched_to_single = False
-
-                console.print(
-                    f"[red]:warning: File ({_size(size)}, {_size(resolved_size)} for "
-                    f"{len(hashes_to_gen)} threads) is larger than available free RAM ({_size(free_ram)})."
-                )
-
-                if size < free_ram:
-                    console.print(
-                        "[yellow]Multihashing can still take place via RAM if the program runs single threaded.\n"
-                        "Single threaded multi-hashing is slower, as it only processes one hash at a time, however"
-                        " as it is reading from RAM, is still faster than multi-hashing from direct disk.\n"
-                        "Your options here are to either *switch to single thread hashing*, or *switch to direct disk*."
-                    )
-                    if Confirm.ask("Continue with single-threaded hashing? (if not, will switch to direct disk)"):
-                        multi_core = False
-                        switched_to_single = True
-
-                if not switched_to_single:
-                    table = Table(title="RAM Requirements for this multi-hash")
-                    table.add_column("Type", justify="left")
-                    table.add_column("RAM Required", justify="center")
-                    table.add_column("RAM Available", justify="center")
-                    table.add_column("Sufficient?", justify="center")
-                    yes = "\N{white heavy check mark}"
-                    no = "\N{cross mark}"
-                    _yn = {
-                        True: yes,
-                        False: no,
-                    }
-
-                    table.add_row(
-                        "Multi-threaded, from RAM",
-                        f"{_size(resolved_size)}",
-                        f"{_size(free_ram)}",
-                        _yn[resolved_size < free_ram],
-                    )
-                    table.add_row(
-                        "Single-threaded, from RAM", f"{_size(size)}", f"{_size(free_ram)}", _yn[size < free_ram]
-                    )
-                    table.add_row(
-                        "Multi-threaded, from disk",
-                        f"~{_size((proc_used_ram + 10240) * len(hashes_to_gen))}",
-                        f"{_size(free_ram)}",
-                        _yn[proc_used_ram + 100 * len(hashes_to_gen) < free_ram],
-                    )
-                    table.add_row(
-                        "Single-threaded, from disk",
-                        f"~{_size(proc_used_ram + 10240)}",
-                        f"{_size(free_ram)}",
-                        _yn[proc_used_ram + 100 < free_ram],
-                    )
-                    console.print(table)
-                    console.print(
-                        "[yellow]Caching to RAM is disabled. Consider using a smaller file, "
-                        "or switching to single-threaded hashing. Direct disk causes high IO wait on slow disks, and"
-                        " is overall significantly slower than RAM cached."
-                    )
-                    console.print(
-                        "[yellow]For more information: https://gist.github.com/EEKIM10/4677140e36a528243fa277091954adcb"
-                    )
-                    no_ram = True
+    no_ram, multi_core, switched_to_single = can_use_ram(size, len(hashes_to_gen), default=no_ram is False, console=console, multi_core=multi_core)
 
     if len(hashes_to_gen) == 1:
         multi_core = False
         console.print("[yellow]:information: Disabled multi-threading as only one hash type was specified.")
-
-    columns = list(Progress.get_default_columns())
-    columns.insert(0, SpinnerColumn("bouncingBar"))
-    columns.insert(-1, FileSizeColumn())
-    columns.insert(-1, TotalFileSizeColumn())
-    columns.insert(-1, TransferSpeedColumn())
-    columns.insert(-1, TimeElapsedColumn())
-    columns[-1] = TimeRemainingColumn(True)
 
     console.print(
         f"Generating {len(hashes_to_gen)} hash{'es' if len(hashes_to_gen) > 1 else ''} for {file.name} "
         f"with a block size of {block_size} KiB ({chunk_size} chunk size in bytes)."
     )
 
-    with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
+    with generate_progress(console) as progress:
         if not no_ram:
             task = progress.add_task("Loading file into RAM...", total=size)
             _t = 0
@@ -333,7 +361,7 @@ def main(
             for block in iter(lambda: file.read(chunk_size), b""):
                 if kill:
                     del buffer
-                    progress.update(task, description="Loading file into ram (cancelled)")
+                    progress.update(task, description="Loading file into RAM (cancelled)")
                     progress.stop_task(task)
                     return
                 buffer.write(block)
@@ -376,7 +404,7 @@ def main(
         console.print(f"[cyan]{hash_name}[/]: {hash_value}")
 
 
-@click.command()
+@main.command(name="verify", aliases=['v'])
 @click.option(
     "--hash-type",
     "--type",
@@ -387,7 +415,7 @@ def main(
 )
 @click.argument("hash")
 @click.argument("file", type=click.Path(exists=True, dir_okay=False, readable=True, allow_dash=True))
-def verify(hash_type: str, hash: str, file: str):
+def verify(hash_type: str, _hash: str, file: str):
     """Verifies a file's hash. You're better off using an external tool to do this because this is really inefficient"""
     console = get_console()
     console.log(
@@ -403,7 +431,7 @@ def verify(hash_type: str, hash: str, file: str):
     }
     if hash_type == "auto":
         for _type, _size in sizes.items():
-            if len(hash) == _size:
+            if len(_hash) == _size:
                 hash_type = _type
                 break
         else:
@@ -439,6 +467,132 @@ def verify(hash_type: str, hash: str, file: str):
         console.print(f"[red]Hashes do not match![/]")
         console.print(f"[cyan]{hash_type} Provided[/]: {hash}")
         console.print(f"[cyan]{hash_type} Calculated[/]: {file_hash}")
+
+@main.command(name="compare", aliases=['c', 'vs'])
+@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys())), default="sha512")
+@click.option("--block-size", "--block", "-B", "block_size", type=int, default=10240)
+@click.option("--no-ram", is_flag=True, help="Disable loading files into RAM beforehand.")
+@click.option(
+    "--single-thread",
+    "--single",
+    is_flag=True,
+    default=False,
+    help="Only hashes one file at a time.",
+)
+@click.argument("files", nargs=2, type=click.Path(exists=True, dir_okay=False, readable=True))
+def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: bool, files: List[str]):
+    """Compares the hashes of given files."""
+    console = get_console()
+
+    global kill
+    if len(files) != 2:
+        console.log("[red]:x: Error: You must provide exactly two files to compare.")
+        return
+    if files[0] == files[1]:
+        console.log("[red]:x: Error: Cannot compare a file to itself.")
+        return
+
+    if os.name != "nt" and not single_thread:
+
+        def signal_handler(*_):
+            global kill
+            try:
+                for _task in progress.tasks:
+                    if _task.completed != _task.total:
+                        progress.update(_task.id, description=_task.description + " (Cancelling)")
+            except NameError:
+                # Killed before progress bar was created
+                pass
+            kill = True
+            console.print("Interrupt handled, stopping threads (ctrl+d to force exit).")
+
+        signal.signal(signal.SIGINT, signal_handler)
+
+    if block_size == 0:
+        console.print("[red]:x: Error: Block size must be greater than 0.")
+        return
+
+    file_stats = [
+        os.stat(file, follow_symlinks=True)
+        for file in files
+    ]
+
+    no_ram, multi_core, switched_to_single = can_use_ram(sum(x.st_size for x in file_stats), count=2, default=no_ram is True, console=console, multi_core=not single_thread)
+    if no_ram is False:
+        console.log(
+            "[yellow]:information: Info: RAM pre-loading is disabled due to bugs that will be removed in a future update."
+        )
+
+    if single_thread:
+        console.log(
+            "[yellow]:warning: Warning: Single-threaded mode is slow and inefficient."
+        )
+
+    with generate_progress(console) as progress:
+        meta = {
+            file: {
+                "path": Path(file),
+                "stat": file_stats[files.index(file)],
+                "buffer": open(file, "rb"),
+                "task_id": None,
+                "hash": None
+            }
+            for file in files
+        }
+
+        for file in files:
+            pth: Path = meta[file]["path"]
+            size = meta[file]["stat"].st_size
+            if not no_ram:
+                task = progress.add_task(f"Loading file {pth.name!r} into RAM...", total=size)
+                _t = 0
+                buffer = BytesIO()
+                for block in iter(lambda: meta[file]["buffer"].read(block_size), b""):
+                    if kill:
+                        del buffer
+                        progress.update(task, description=f"Loading file {pth.name!r} into RAM (cancelled)")
+                        progress.stop_task(task)
+                        return
+                    buffer.write(block)
+                    _t += len(block)
+                    progress.update(task, advance=len(block))
+                buffer.seek(0)
+                progress.update(task, total=_t)
+                size = _t
+                meta[file]["buffer"].close()
+                meta[file]["buffer"] = buffer
+                progress.remove_task(task)
+            meta[file]["task_id"] = progress.add_task(f"Generating hash for {pth.name!r}", total=size, start=False)
+
+        if multi_core:
+            threads = []
+            for file in files:
+                if not no_ram:
+                    buffer_copy = copy.copy(buffer)
+                else:
+                    buffer_copy = click.open_file(file, "rb")
+                thread = Thread(
+                    target=lambda: meta[file].update(
+                        {"hash": generate_hash(buffer_copy, hash_type, meta[file]['task_id'], progress, block_size)}
+                    )
+                    and buffer_copy.close()
+                )
+                thread.start()
+                threads.append(thread)
+            for thread in threads:
+                thread.join()
+        else:
+            for file in files:
+                meta[file]["hash"] = generate_hash(buffer, hash_type, meta[file]['task_id'], progress, block_size)
+                buffer.seek(0)
+
+    hashes = [x['hash'] for x in meta.values()]
+    if hashes[0] == hashes[1]:
+        console.print("[green]Hashes match![/]")
+    else:
+        console.print("[red]Hashes do not match![/]")
+    for file in files:
+        console.print(f"[cyan]{hash_type} {meta[file]['path'].name}[/]: {meta[file]['hash']}")
 
 
 if __name__ == "__main__":
