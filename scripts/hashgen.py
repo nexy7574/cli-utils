@@ -517,7 +517,15 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
         for file in files
     ]
 
-    no_ram, multi_core, switched_to_single = can_use_ram(sum(x.st_size for x in file_stats), count=2, default=no_ram is True, console=console, multi_core=not single_thread)
+    no_ram, multi_core, switched_to_single = can_use_ram(
+        sum(
+            x.st_size for x in file_stats
+        ),
+        count=2,
+        default=no_ram is True,
+        console=console,
+        multi_core=not single_thread
+    )
     if no_ram is False:
         console.log(
             "[yellow]:information: Info: RAM pre-loading is disabled due to bugs that will be removed in a future update."
