@@ -10,8 +10,6 @@ from elevate import elevate
 from rich import get_console
 from rich.prompt import Prompt, IntPrompt, Confirm
 from rich.syntax import Syntax
-from typing import Literal
-
 if os.name == "nt":
     print("This script is not supported on Windows.", file=sys.stderr)
     sys.exit(1)
@@ -19,10 +17,10 @@ if os.name == "nt":
 console = get_console()
 CAPACITY_VALUES = {
     "b": 1,
-    "kb": 1024,
-    "mb": 1024**2,
-    "gb": 1024**3,
-    "tb": 1024**4,
+    "k": 1024,
+    "m": 1024**2,
+    "g": 1024**3,
+    "t": 1024**4,
     # Who the hell has a terabyte or more of ram?
 }
 CAPACITY_REGEX = re.compile(r"(\d+)\s*([bkmgt])", re.IGNORECASE)
@@ -136,20 +134,30 @@ def main():
             " or it may not even start. Apply at your own risk!"
         )
         console.print(
-            "CPU Quota, as per [ul][link]https://www.freedesktop.org/software/systemd/man/"
-            "systemd.resource-control.html#CPUQuota=[/link][/ul], limits the amount of CPU time a unit can use per"
+            "CPU Quota, as per [ul]"
+            "[link=https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#CPUQuota=]"
+            "man/systemd.resource-control.html#CPUQuota=[/link][/ul], "
+            "limits the amount of CPU time a unit can use per"
             " CPU."
         )
-        cpu_quota = IntPrompt.ask("What CPU quota should this unit have in percent? (e.g. 50 or 100)", default="100")
-        if cpu_quota > 0:
-            service["CPUAccounting"] = "true"
-            service["CPUQuota"] = f"{cpu_quota}%"
-            console.print(":white_heavy_check_mark: CPU Limiting enabled.")
-        else:
+        try:
+            cpu_quota = IntPrompt.ask("What CPU quota should this unit have in percent? (e.g. 50 or 100)", default=100)
+        except KeyboardInterrupt:
             console.print(":x: CPU Limiting disabled.")
+        else:
+            if cpu_quota and cpu_quota > 0:
+                service["CPUAccounting"] = "true"
+                service["CPUQuota"] = f"{cpu_quota}%"
+                console.print(":white_heavy_check_mark: CPU Limiting enabled.")
+            else:
+                console.print(":x: CPU Limiting disabled.")
 
         while True:
-            memory_limit = Prompt.ask("What memory limit should this unit have? (e.g. 512M or 1G)", default="1G")
+            try:
+                memory_limit = Prompt.ask("What memory limit should this unit have? (e.g. 512M or 1G)", default="1G")
+            except KeyboardInterrupt:
+                console.print(":x: Memory Limiting disabled.")
+                break
             if memory_limit:
                 try:
                     if not memory_limit.endswith("%"):
@@ -170,9 +178,13 @@ def main():
             if service.get("MemoryAccounting") == "True":
                 if Confirm.ask("Do you want to reserve memory for this unit?"):
                     while True:
-                        memory_reserve = Prompt.ask(
-                            "What memory reserve should this unit have? (e.g. 512M or 1G, or 10%)", default="128M"
-                        )
+                        try:
+                            memory_reserve = Prompt.ask(
+                                "What memory reserve should this unit have? (e.g. 512M or 1G, or 10%)", default="128M"
+                            )
+                        except KeyboardInterrupt:
+                            console.print(":x: Memory Reservation disabled.")
+                            break
                         if memory_reserve:
                             try:
                                 if not memory_reserve.endswith("%"):
@@ -196,10 +208,14 @@ def main():
                     "(at which point memory throttling kicks in)"
                 ):
                     while True:
-                        memory_pressure = Prompt.ask(
-                            "At how much used memory should memory pressure be raised? (e.g. 512M or 1G, or 10%)",
-                            default="1G",
-                        )
+                        try:
+                            memory_pressure = Prompt.ask(
+                                "At how much used memory should memory pressure be raised? (e.g. 512M or 1G, or 10%)",
+                                default="1G",
+                            )
+                        except KeyboardInterrupt:
+                            console.print(":x: Memory Pressure disabled.")
+                            break
                         if memory_pressure:
                             try:
                                 if not memory_pressure.endswith("%"):
@@ -218,7 +234,7 @@ def main():
                             console.print(":x: Memory Pressure disabled.")
                             break
 
-        task_limit = IntPrompt.ask("What task limit should this unit have? (e.g. 100)", default="1000")
+        task_limit = IntPrompt.ask("What task limit should this unit have? (e.g. 100)", default=1000)
         if task_limit > 0:
             service["TasksAccounting"] = "true"
             service["TasksMax"] = str(task_limit)
