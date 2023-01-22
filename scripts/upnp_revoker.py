@@ -55,6 +55,13 @@ def print_ports(rem):
 
 # noinspection PyPep8Naming
 def main():
+    try:
+        run(("upnpc", "--help"), capture_output=True)
+    except FileNotFoundError:
+        console.print(
+            "upnpc is not installed. Please install it (usually with a package called `miniupnpc` on most systems)."
+        )
+        return 1
     lineRegex = re.compile(
         r"^\s*\d+\s(TCP|UDP)\s+(?P<port>\d{1,5})->(?P<ext>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}).+$",
         re.IGNORECASE + re.VERBOSE,
@@ -138,12 +145,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        run(("upnpc", "--help"), capture_output=True)
-    except FileNotFoundError:
-        console.print(
-            "upnpc is not installed. Please install it (usually with a package called `miniupnpc` on most systems)."
-        )
-        sys.exit(1)
-    else:
-        main()
+    main()
