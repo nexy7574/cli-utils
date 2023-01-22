@@ -107,7 +107,9 @@ def generate_progress(console: "Console" = None) -> Progress:
     return Progress(*columns, console=console, refresh_per_second=12, expand=True)
 
 
-def can_use_ram(size: int, count: int, *, default: bool = False, console: "Console", multi_core: bool = True) -> Tuple[bool, bool, bool]:
+def can_use_ram(
+    size: int, count: int, *, default: bool = False, console: "Console", multi_core: bool = True
+) -> Tuple[bool, bool, bool]:
     no_ram = default
     switched_to_single = False
     hashes_to_gen = count
@@ -160,9 +162,7 @@ def can_use_ram(size: int, count: int, *, default: bool = False, console: "Conso
                     f"{_size(free_ram)}",
                     _yn[resolved_size < free_ram],
                 )
-                table.add_row(
-                    "Single-threaded, from RAM", f"{_size(size)}", f"{_size(free_ram)}", _yn[size < free_ram]
-                )
+                table.add_row("Single-threaded, from RAM", f"{_size(size)}", f"{_size(free_ram)}", _yn[size < free_ram])
                 table.add_row(
                     "Multi-threaded, from disk",
                     f"~{_size((proc_used_ram + 10240) * hashes_to_gen)}",
@@ -342,7 +342,9 @@ def generate(
         stat = path.stat(follow_symlinks=True)
         size = stat.st_size
 
-    no_ram, multi_core, switched_to_single = can_use_ram(size, len(hashes_to_gen), default=no_ram is False, console=console, multi_core=multi_core)
+    no_ram, multi_core, switched_to_single = can_use_ram(
+        size, len(hashes_to_gen), default=no_ram is False, console=console, multi_core=multi_core
+    )
 
     if len(hashes_to_gen) == 1:
         multi_core = False
@@ -404,7 +406,7 @@ def generate(
         console.print(f"[cyan]{hash_name}[/]: {hash_value}")
 
 
-@main.command(name="verify", aliases=['v'])
+@main.command(name="verify", aliases=["v"])
 @click.option(
     "--hash-type",
     "--type",
@@ -468,7 +470,8 @@ def verify(hash_type: str, _hash: str, file: str):
         console.print(f"[cyan]{hash_type} Provided[/]: {hash}")
         console.print(f"[cyan]{hash_type} Calculated[/]: {file_hash}")
 
-@main.command(name="compare", aliases=['c', 'vs'])
+
+@main.command(name="compare", aliases=["c", "vs"])
 @click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys())), default="sha512")
 @click.option("--block-size", "--block", "-B", "block_size", type=int, default=10240)
 @click.option("--no-ram", is_flag=True, help="Disable loading files into RAM beforehand.")
@@ -512,19 +515,14 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
         console.print("[red]:x: Error: Block size must be greater than 0.")
         return
 
-    file_stats = [
-        os.stat(file, follow_symlinks=True)
-        for file in files
-    ]
+    file_stats = [os.stat(file, follow_symlinks=True) for file in files]
 
     no_ram, multi_core, switched_to_single = can_use_ram(
-        sum(
-            x.st_size for x in file_stats
-        ),
+        sum(x.st_size for x in file_stats),
         count=2,
         default=no_ram is True,
         console=console,
-        multi_core=not single_thread
+        multi_core=not single_thread,
     )
     if no_ram is False:
         console.log(
@@ -532,9 +530,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
         )
 
     if single_thread:
-        console.log(
-            "[yellow]:warning: Warning: Single-threaded mode is slow and inefficient."
-        )
+        console.log("[yellow]:warning: Warning: Single-threaded mode is slow and inefficient.")
 
     with generate_progress(console) as progress:
         meta = {
@@ -543,7 +539,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
                 "stat": file_stats[files.index(file)],
                 "buffer": open(file, "rb"),
                 "task_id": None,
-                "hash": None
+                "hash": None,
             }
             for file in files
         }
@@ -581,7 +577,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
                     buffer_copy = click.open_file(file, "rb")
                 thread = Thread(
                     target=lambda: meta[file].update(
-                        {"hash": generate_hash(buffer_copy, hash_type, meta[file]['task_id'], progress, block_size)}
+                        {"hash": generate_hash(buffer_copy, hash_type, meta[file]["task_id"], progress, block_size)}
                     )
                     and buffer_copy.close()
                 )
@@ -591,10 +587,10 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
                 thread.join()
         else:
             for file in files:
-                meta[file]["hash"] = generate_hash(buffer, hash_type, meta[file]['task_id'], progress, block_size)
+                meta[file]["hash"] = generate_hash(buffer, hash_type, meta[file]["task_id"], progress, block_size)
                 buffer.seek(0)
 
-    hashes = [x['hash'] for x in meta.values()]
+    hashes = [x["hash"] for x in meta.values()]
     if hashes[0] == hashes[1]:
         console.print("[green]Hashes match![/]")
     else:
