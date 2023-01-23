@@ -133,7 +133,7 @@ def main(
         with open(TEMP_FN, "wb+") as temp:
             if silent:
                 console.print("Scrambling...")
-                for _ in scramble(buffer, bound_start, bound_end, min_chunk_size, max_chunk_size, passes):
+                for _ in scramble(buffer, bound_start, bound_end, min_chunk_size, max_chunk_size, passes, method):
                     continue
             else:
                 for pass_no, written in track(
