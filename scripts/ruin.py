@@ -104,7 +104,7 @@ def main(
         buffer = io.BytesIO()
         with wrap_file(file, stat.st_size, transient=not verbose) as _file:
             while True:
-                chunk = _file.read(1024)
+                chunk = _file.read(stat.st_blksize or 1024)
                 if not chunk:
                     break
                 buffer.write(chunk)
@@ -150,7 +150,7 @@ def main(
             console.print("Writing file...")
             chunks = math.ceil(size / 1024)
             for _ in track(range(chunks), description="Writing file", console=console, transient=not verbose):
-                chunk = buffer.read(1024)
+                chunk = buffer.read(stat.st_blksize or 1024)
                 temp.write(chunk)
         console.print("Written corrupted file to ./" + TEMP_FN)
         console.print("Corrupted {!s}/{!s} ({:.2f}%) of file.".format(written, size, (written / size) * 100))
