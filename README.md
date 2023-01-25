@@ -60,6 +60,7 @@ prompt, which *may* break the output.
 | [arriva](/scripts/arriva.py)                                    | `arriva`                      | python 3.11+ | This is a tool I use to automatically connect to my bus operator's free wifi without the hassle of a web-browser captive portal. **This is a very personal script and likely will not work for you!** |
 | [wg_manager.py](/scripts/wg_manager.py)                         | `wg-manager`                  | python 3.9+  | A tool to manage wireguard VPN connections. (WIP)                                                                                                                                                     |
 | [asus_fx504_fan_control.py](/scripts/asus_fx504_fan_control.py) | `afan`                        | python 3.9+  | A tool to control the fan boost mode on my laptop (ASUS FX504GD). Probably not universally useful                                                                                                     |
+| [filegen.py](/scripts/filegen.py)                               | `filegen`                     | python 3.9+  | A tool to generate files of a given size.                                                                                                                                                             |
 
 ### "Version"
 In the above table, "Version" refers to the python version that the script was written in.

@@ -45,7 +45,7 @@ def main(size: str, output: str, block_size: int, source: Literal["urandom", "ze
     columns.insert(-1, TimeElapsedColumn())
     columns[-1] = TimeRemainingColumn(True)
 
-    with Progress() as progress:
+    with Progress(*columns, console=console, expand=True) as progress:
         task = progress.add_task("Write data", total=size_in_bytes)
         bytes_written = 0
         with click.open_file(output, "wb") as f:
