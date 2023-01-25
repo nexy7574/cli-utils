@@ -34,13 +34,14 @@ setup(
             "visual-rm = scripts.visual_rm:main",
             "vrm = scripts.visual_rm:main",
             "hashgen = scripts.hashgen:main",
-            "hashgen-verify = scripts.hashgen:verify",
             "ruin = scripts.ruin:main",
             "arriva = scripts.arriva:main",
             "wg-manager = scripts.wg_manager:main",
             "afan = scripts.asus_fx504_fan_control:main",
             "cli-utils-install-extra = scripts.install_bash_scripts:main",
             "cf-ddns = scripts.cf_ddns:main",
+            "file-gen = scripts.filegen:main",
+            "filegen = scripts.filegen:main",
         ]
     },
 )
