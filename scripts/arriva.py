@@ -56,13 +56,23 @@ def qs_to_dict(url: str, flatten: bool = False) -> dict:
 
 def do_request(session, url: str, stage: str, *args, method: str = "GET", **kwargs) -> requests.Response | None:
     verbose = kwargs.pop("verbose", False)
+    retries = kwargs.pop("__retries", 0)
+    kwargs.setdefault("timeout", 10)
     with console.status("GET " + (url[:95] + "[...]" if len(url) >= 100 else url)):
         try:
             start = time.time()
             response = session.request(method, url, *args, **kwargs)
             end = time.time()
-        except requests.ConnectionError:
-            console.log(f"[red]:warning: Failed to connect to {stage} - are you connected to wifi?")
+        except TimeoutError:
+            retries += 1
+            timeout = kwargs.get("timeout") or 10
+            if not isinstance(timeout, int):
+                timeout = 10
+            timeout += (timeout * 0.25)
+            console.log(f"[red]:warning: Timed out on {stage} - retrying in {timeout} seconds (attempt {retries}/5)")
+            return do_request(session, url, stage, *args, method=method, timeout=timeout, **kwargs)
+        except requests.ConnectionError as e:
+            console.log(f"[red]:warning: Failed to connect to {stage} ({e}) - are you connected to wifi?")
             return
         except KeyboardInterrupt:
             console.log(f"[red]:warning: Connection to {stage} aborted!")
