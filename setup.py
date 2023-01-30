@@ -23,7 +23,7 @@ setup(
     install_requires=requirements,
     python_requires=">=3.10",
     extras_require={
-        "gui": ["PyQt5==5.15.7"],
+        "gui": ["PyQt5==5.15.8"],
     },
     entry_points={
         "console_scripts": [
