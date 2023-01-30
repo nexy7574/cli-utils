@@ -55,6 +55,7 @@ def qs_to_dict(url: str, flatten: bool = False) -> dict:
 
 
 def do_request(session, url: str, stage: str, *args, method: str = "GET", **kwargs) -> requests.Response | None:
+    verbose = kwargs.pop("verbose", False)
     with console.status("GET " + (url[:95] + "[...]" if len(url) >= 100 else url)):
         try:
             start = time.time()
@@ -66,7 +67,8 @@ def do_request(session, url: str, stage: str, *args, method: str = "GET", **kwar
         except KeyboardInterrupt:
             console.log(f"[red]:warning: Connection to {stage} aborted!")
             return
-    console.log(f"[green]:white_check_mark: GET {response.url}: {response.status_code} ({round((end - start)*1000)}ms)")
+    if verbose:
+        console.log(f"[green]:white_check_mark: GET {response.url}: {response.status_code} ({round((end - start)*1000)}ms)")
     return response
 
 
@@ -89,11 +91,11 @@ def cycle_net_connection(off_first: bool = True, on_after: bool = True, sleep_ti
                 console.log("[green]$ " + " ".join(cmd))
 
 
-def get_canonical_response(yes: bool, n: int = 0):
+def get_canonical_response(yes: bool, n: int = 0, verbose: bool = False):
     assert n <= 5, "Too many retries."
     session = requests.Session()
     session.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64; rv:107.0) Gecko/20100101 Firefox/107.0"
-    get = partial(do_request, session)
+    get = partial(do_request, session, verbose=verbose)
     canonical_response = get("http://detectportal.firefox.com/canonical.html", "portal detecter", allow_redirects=False)
     if canonical_response is None:
         raise RuntimeError
@@ -198,7 +200,10 @@ def atomically_enable_vpn(name: str):
 @click.command()
 @click.option("--yes", "-Y", is_flag=True, help="Skip confirmation prompts (assume YES)")
 @click.option("--vpn-profile", "--vpn", "--profile", "-V", default="%ASK%", help="Which VPN to activate")
-def main(yes: bool, vpn_profile: str):
+@click.option("--no-vpn", "-N", is_flag=True, help="Skips VPN prompt (overrides --yes)")
+@click.option("--no-latency-test", "-L", is_flag=True, help="Skips latency test prompt (overrides --yes)")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+def main(yes: bool, vpn_profile: str, verbose: bool, no_vpn: bool, no_latency_test: bool):
     """
     Command that runs through activating the Arriva Wi-Fi.
 
@@ -223,7 +228,8 @@ def main(yes: bool, vpn_profile: str):
     except RuntimeError:
         return
     target_url = canonical_response.headers["Location"]
-    console.log("[dim i]Following redirect from detection portal (to: {})".format(target_url))
+    if verbose:
+        console.log("[dim i]Following redirect from detection portal (to: {})".format(target_url))
     portal_response = get(target_url, "portal")
     if portal_response is None:
         return
@@ -266,7 +272,7 @@ def main(yes: bool, vpn_profile: str):
         url = response.headers["Location"]
         params = qs_to_dict(url, True)
         if params["res"] == "success":
-            console.log("[green]:white_check_mark: You should now have access to arriva's free wifi.")
+            console.log("[green]:white_check_mark: You should now have access to Arriva's free wifi.")
         else:
             console.log("[yellow]Went through the auth flow and got '{}' for res.".format(params["res"]))
             return
@@ -281,9 +287,10 @@ def main(yes: bool, vpn_profile: str):
         return
     if response.status_code == 200:
         console.log("[green]:white_check_mark: You should now have access to the internet.")
-        console.log("HTTPBin data:")
-        console.print_json(data=response.json(), indent=4)
-        if yes or Confirm.ask("Would you like to start a VPN?", console=console):
+        if verbose:
+            console.log("HTTPBin data:")
+            console.print_json(data=response.json(), indent=4)
+        if no_vpn is False and (yes or Confirm.ask("Would you like to start a VPN?", console=console)):
             vpns = vpn_list()
             try:
                 if vpn_profile == "%ASK%":
@@ -306,7 +313,7 @@ def main(yes: bool, vpn_profile: str):
                 else:
                     console.log("[yellow]:warning: Failed to activate VPN - You still have access to wifi.")
 
-        if yes or Confirm.ask("Do you want to do a latency check?", console=console):
+        if no_latency_test is False and (yes or Confirm.ask("Do you want to do a latency check?", console=console)):
             times = []
             try:
                 for i in range(10):
