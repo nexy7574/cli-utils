@@ -160,6 +160,11 @@ class Main:
                         deleted=self.deleted_directories + self.deleted_files,
                     )
                     done_threads = len(threads) - sum(t.is_alive() for t in threads)
+                    for thread in threads:
+                        if thread.is_alive() is False:
+                            threads.remove(thread)
+                            del thread
+                            # Thread is dead, remove it from the list
                     progress.update(
                         threads_task,
                         total=len(threads),
