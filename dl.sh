@@ -7,7 +7,7 @@ if [[ PIPX_EXISTS -ne 0 ]]; then
     if [[ PIP_EXISTS -eq 0 ]]; then
         # shellcheck disable=SC2016
         echo 'Installing pipx with `pip install pipx`'
-        RESULT=pip install pipx
+        RESULT=$(pip install pipx)
         if [[ $RESULT -ne 0 ]]; then
             echo 'Failed to install pipx. Aborting.'
             exit "$RESULT"
