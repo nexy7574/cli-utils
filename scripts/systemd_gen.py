@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import getpass
+import re
 import subprocess
 import sys
 import pwd
@@ -45,32 +46,38 @@ def main():
             console.log("[gray italics]Attempting to elevate program permissions...[/]")
             elevate()
 
-    name = Prompt.ask("Please enter a name for this service")
+    while True:
+        name = Prompt.ask("Please enter a name for this service")
+        # name cannot contain spaces or any special characters
+        if not re.match(r"^[a-zA-Z0-9_-]+$", name):
+            console.log("[red]Service name cannot contain spaces or special characters![/]")
+            continue
+        else:
+            break
     description = Prompt.ask("Please enter a description of this service")
     _type = Prompt.ask(f"What type is this service?", choices=types).lower().strip()
-    restart_on_death = Confirm.ask("Should this service be automatically restarted on death?", default=False)
+    restart_on_death = Confirm.ask("Should this service be automatically restarted on process exit?", default=False)
     max_restarts = time_between_restarts = 0
     if restart_on_death:
-        max_restarts = IntPrompt.ask("How many times can this service restart before systemd gives up?")
+        max_restarts = IntPrompt.ask("How many times can this service restart before systemd gives up?", default=10)
         time_between_restarts = IntPrompt.ask(
-            "How long, in seconds, should systemd wait before automatically restarting the service?", default=5
+            "How long, in seconds, should systemd wait between restarts?", default=5
         )
     exec_path = Prompt.ask(
-        "What command should this service run? (e.g. /usr/local/opt/python-3.9.0/bin/python3.9 /root/thing.py)"
+        f"What command should this service run? (e.g. /usr/bin/python3 /home/{_uname}/my_script.py --arg1)"
     )
-    requires_network = Confirm.ask("Should the service wait until network connectivity is established?")
+    requires_network = Confirm.ask("Should the service wait until network connectivity is established before starting?")
     user = None
     while user is None:
         user = Prompt.ask("What user should this service run as? (e.g. root, default, nobody, etc.)", default=_uname)
-        if user.lower() in ["root", "default", "none", " "]:
+        if user.lower() in ["root", "default", "none", " ", ""]:
             user = None
             break
         else:
-            console.log("Checking user...")
             try:
                 pwd.getpwnam(user)
             except KeyError:
-                console.log(f"[red]User {user} does not exist![/]")
+                console.log(f"[red]User {user!r} does not exist![/]")
                 user = None
             else:
                 break
@@ -102,7 +109,10 @@ def main():
         "WantedBy": "multi-user.target",
     }
 
-    if Confirm.ask("Would you like to restrict the system resources this unit can use?"):
+    if Confirm.ask(
+            "Would you like to restrict the system resources this unit can use? (you probably only need this if "
+            "you're running on a low-end server or VPS)"
+    ):
         console.print("All inputs are optional here - just hit enter if you want to skip a value!")
         console.print(
             ":warning: Note that if you specify a value that is too low, the service may not work as expected, at all,"
@@ -111,7 +121,7 @@ def main():
         console.print(
             "CPU Quota, as per [ul]"
             "[link=https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#CPUQuota=]"
-            "man/systemd.resource-control.html#CPUQuota=[/link][/ul], "
+            "https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html[/link][/ul], "
             "limits the amount of CPU time a unit can use per"
             " CPU."
         )
@@ -146,6 +156,7 @@ def main():
                     console.print(f"[red]{e}[/]")
                 else:
                     console.print(":white_heavy_check_mark: Memory Limiting enabled.")
+                    break
             else:
                 console.print(":x: Memory limiting disabled.")
                 break
@@ -244,7 +255,7 @@ def main():
                 console.log(f"[gray italics]Wrote {written} bytes to `/etc/systemd/system/{name}.service`.")
         except PermissionError:
             console.print_exception()
-            console.log("Unable to write configuration file. Try sudo.")
+            console.log("Unable to write configuration file. Writing to current directory.")
             with open("./{}.service".format(name), "w+") as wfile:
                 wfile.write(content)
             console.log(
