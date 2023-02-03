@@ -1,7 +1,7 @@
 #!/bin/bash
-PIPX_EXISTS=$(command -v pipx &> /dev/null)
-PIP_EXISTS=$(command -v pip &> /dev/null)
-PYTHON3_EXISTS=$(command -v python3 &> /dev/null)
+PIPX_EXISTS=$(command -v pipx &> /dev/null; echo $?)
+PIP_EXISTS=$(command -v pip &> /dev/null; echo $?)
+PYTHON3_EXISTS=$(command -v python3 &> /dev/null; echo $?)
 if [[ PIPX_EXISTS -ne 0 ]]; then
     if [[ PIP_EXISTS -eq 0 ]]; then
         # shellcheck disable=SC2016
