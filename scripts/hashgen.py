@@ -468,12 +468,12 @@ def verify(hash_type: str, hash_value: str, file: str):
         buffer = file
         task = progress.add_task(f"Checking {hash_type} hash", total=size)
         file_hash = generate_hash(buffer, hash_type, task, progress, 1024 * 1024 * 32)
-        buffer.seek(0)
-    if file_hash == hash:
+
+    if file_hash == _hash:
         console.print(f"[green]Hashes match![/]")
     else:
         console.print(f"[red]Hashes do not match![/]")
-        console.print(f"[cyan]{hash_type} Provided[/]: {hash}")
+        console.print(f"[cyan]{hash_type} Provided[/]: {_hash}")
         console.print(f"[cyan]{hash_type} Calculated[/]: {file_hash}")
 
 
