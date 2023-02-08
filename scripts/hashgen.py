@@ -423,14 +423,12 @@ def generate(
     type=click.Choice([x for x in types.keys() if "blake" not in x] + ["auto"]),
     default="auto",
 )
-@click.argument("hash")
+@click.argument("hash_value", type=str, required=True)
 @click.argument("file", type=click.Path(exists=True, dir_okay=False, readable=True, allow_dash=True))
-def verify(hash_type: str, _hash: str, file: str):
+def verify(hash_type: str, hash_value: str, file: str):
     """Verifies a file's hash. You're better off using an external tool to do this because this is really inefficient"""
+    _hash = hash_value
     console = get_console()
-    console.log(
-        "[red]:warning: Warning: This function is extremely unoptimized, slow, and possibly unreliable. You are better off using an external tool to verify hashes."
-    )
     sizes = {
         "md5": 32,
         "sha1": 40,
