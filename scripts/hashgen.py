@@ -95,7 +95,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
             return hash_obj.hexdigest(128)
 
 
-def generate_progress(console: "Console" = None) -> Progress:
+def generate_progress(console: "Console" = None, verbose: bool = False) -> Progress:
     """Generates a progress"""
     columns = list(Progress.get_default_columns())
     columns.insert(0, SpinnerColumn("bouncingBar"))
@@ -104,7 +104,7 @@ def generate_progress(console: "Console" = None) -> Progress:
     columns.insert(-1, TransferSpeedColumn())
     columns.insert(-1, TimeElapsedColumn())
     columns[-1] = TimeRemainingColumn(True)
-    return Progress(*columns, console=console, refresh_per_second=12, expand=True)
+    return Progress(*columns, console=console, refresh_per_second=12, expand=True, transient=not verbose)
 
 
 def can_use_ram(
@@ -228,6 +228,7 @@ def main():
 @click.option(
     "--all-hashes", is_flag=True, default=False, help="Use all hashing algorithms. Overrules previous hash options."
 )
+@click.option("--verbose", "-v", is_flag=True, default=False, help="Enable verbose output.")
 @click.argument("file", type=click.Path(exists=True, file_okay=True, readable=True, allow_dash=True))
 def generate(
     no_ram: bool,
@@ -250,6 +251,7 @@ def generate(
     shake_128: bool,
     shake_256: bool,
     all_hashes: bool,
+    verbose: bool,
     file: str,
 ):
     """Generates a hash for a specified file.
@@ -348,14 +350,16 @@ def generate(
 
     if len(hashes_to_gen) == 1:
         multi_core = False
-        console.print("[yellow]:information: Disabled multi-threading as only one hash type was specified.")
+        if verbose:
+            console.print("[yellow]:information: Disabled multi-threading as only one hash type was specified.")
 
-    console.print(
-        f"Generating {len(hashes_to_gen)} hash{'es' if len(hashes_to_gen) > 1 else ''} for {file.name} "
-        f"with a block size of {block_size} KiB ({chunk_size} chunk size in bytes)."
-    )
+    if verbose:
+        console.print(
+            f"Generating {len(hashes_to_gen)} hash{'es' if len(hashes_to_gen) > 1 else ''} for {file.name} "
+            f"with a block size of {block_size} KiB ({chunk_size} chunk size in bytes)."
+        )
 
-    with generate_progress(console) as progress:
+    with generate_progress(console, verbose) as progress:
         if not no_ram:
             task = progress.add_task("Loading file into RAM...", total=size)
             _t = 0
