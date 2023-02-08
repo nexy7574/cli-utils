@@ -373,7 +373,11 @@ def generate(
             progress.update(task, total=_t)
             size = _t
         else:
-            buffer = file
+            if path == Path("stdin"):
+                # We need to read the whole of stdin to allow for seeking
+                buffer = BytesIO(file.read())
+            else:
+                buffer = file
 
         tasks = {}
         for hash_name in hashes_to_gen.keys():
