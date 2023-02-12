@@ -610,7 +610,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
 
 
 @main.command(name="download", aliases=["dl", "d"])
-@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys())), default="auto")
+@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys()) + ["auto"]), default="auto")
 @click.option("--wget-options", default=DEFAULT_WGET_OPTIONS)
 @click.option(
     "--output-file",
@@ -674,6 +674,60 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
         os.remove(output_file)
     except (FileNotFoundError, OSError) as e:
         console.print(f"[red]:x: Error: Could not remove temporary file {output_file!r} due to error {e!r}[/]")
+
+
+@main.command(name="flash", aliases=["f", "image", "i"])
+@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys()) + ["auto"]), default="auto")
+@click.argument("input_file", type=click.Path(exists=True, dir_okay=False, readable=True))
+@click.argument("output_file", type=click.Path(writable=True, dir_okay=False))
+def flash_image(hash_type: str, input_file: str, output_file: str):
+    """Wrapper for `dd` and then verifying the hash"""
+    console = get_console()
+    console.log("Begging flash of image...")
+    # First, we need to open the source file. And then open the target file. And then write the source file to the target file.
+    # And then close the target file. And then close the source file.
+    # And then verify the hash.
+    # but lets stat the target file (or the source file if the target doesn't exist yet) and get the block size
+
+    try:
+        stat = os.stat(output_file)
+    except FileNotFoundError:
+        stat = os.stat(input_file)
+    block_size = stat.st_blksize
+    console.log("Block size:", block_size)
+    columns = list(Progress.get_default_columns())
+    columns.insert(0, SpinnerColumn("bouncingBar"))
+    columns.insert(-1, FileSizeColumn())
+    columns.insert(-1, TotalFileSizeColumn())
+    columns.insert(-1, TransferSpeedColumn())
+    columns.insert(-1, TimeElapsedColumn())
+    columns[-1] = TimeRemainingColumn(True)
+
+    with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
+        with open(input_file, "rb") as input_buffer, open(output_file, "wb") as output_buffer:
+            task = progress.add_task(f"Flashing {input_file}->{output_file}", total=stat.st_size)
+            while True:
+                data = input_buffer.read(block_size)
+                if not data:
+                    break
+                output_buffer.write(data)
+                progress.advance(task, len(data))
+        task2 = progress.add_task(f"Generating hash for {input_file}", total=stat.st_size)
+        with open(input_file, "rb") as input_buffer:
+            _hash = generate_hash(input_buffer, hash_type, task2, progress, block_size)
+        console.log("Hash generated:", _hash)
+        console.log("Verifying hash...")
+        task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
+        with open(output_file, "rb") as output_buffer:
+            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size)
+        console.log("Hash generated:", file_hash)
+    if file_hash == _hash:
+        console.print(f"[green]Hashes match![/]")
+    else:
+        console.print(f"[red]Hashes do not match![/]")
+        console.print(f"[cyan]{hash_type} Source[/]: {_hash}")
+        console.print(f"[cyan]{hash_type} Target[/]: {file_hash}")
+
 
 
 if __name__ == "__main__":
