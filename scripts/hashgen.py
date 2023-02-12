@@ -689,10 +689,7 @@ def flash_image(hash_type: str, input_file: str, output_file: str):
     # And then verify the hash.
     # but lets stat the target file (or the source file if the target doesn't exist yet) and get the block size
 
-    try:
-        stat = os.stat(output_file)
-    except FileNotFoundError:
-        stat = os.stat(input_file)
+    stat = os.stat(input_file)
     block_size = stat.st_blksize
     console.log("Block size:", block_size)
     columns = list(Progress.get_default_columns())
