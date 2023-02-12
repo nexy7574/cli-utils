@@ -111,6 +111,8 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     if progress.tasks[task].total != progress.tasks[task].completed:
         progress.update(task, completed=bytes_read)
 
+    assert progress.tasks[task].total == progress.tasks[task].completed, f"Forgot {progress.tasks[task].total - progress.tasks[task].completed:,} bytes."
+
     try:
         return hash_obj.hexdigest()
     except TypeError:
