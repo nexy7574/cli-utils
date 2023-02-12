@@ -1,4 +1,5 @@
 import copy
+import subprocess
 import sys
 import typing
 from functools import partial
@@ -38,6 +39,9 @@ if typing.TYPE_CHECKING:
 # This means if someone were to want to multi-hash a file, they would have to either read the file into memory n times
 # (n being number of processes), or read the file n times; either way, this is really wasteful.
 # At least with threading, it will be ever so slightly faster than single-threaded, despite the GIL limitations.
+
+DEFAULT_WGET_OPTIONS = "-c -O /tmp/.hashgen.download.part -t 5 --compression=auto -q --show-progress --progress=bar" \
+                       " --no-cache "
 
 
 def get_hasher(name: str) -> callable:
@@ -478,7 +482,7 @@ def verify(hash_type: str, hash_value: str, file: str):
 
 
 @main.command(name="compare", aliases=["c", "vs"])
-@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys())), default="sha512")
+@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys())), default="sha256")
 @click.option("--block-size", "--block", "-B", "block_size", type=int, default=10240)
 @click.option("--no-ram", is_flag=True, help="Disable loading files into RAM beforehand.")
 @click.option(
@@ -603,6 +607,31 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
         console.print("[red]Hashes do not match![/]")
     for file in files:
         console.print(f"[cyan]{hash_type} {meta[file]['path'].name}[/]: {meta[file]['hash']}")
+
+
+@main.command(name="download", aliases=["dl", "d"])
+@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys())), default="auto")
+@click.option("--wget-options", default=DEFAULT_WGET_OPTIONS)
+@click.option(
+    "--output-file",
+    "-o",
+    "output_file",
+    type=click.Path(exists=True, dir_okay=False),
+    default="/tmp/.hashgen.download.part"
+)
+@click.argument("url", type=str)
+@click.argument("expected_hash", type=str)
+def download_file(hash_type: str, wget_options: str, output_file: str, url: str, expected_hash: str):
+    """Wrapper for wget and then checking the hash afterwards."""
+    console = get_console()
+    console.log("Begging download of file...")
+    try:
+        subprocess.run(["wget", *wget_options.split(), f"-O {output_file}", url], check=True)
+    except subprocess.CalledProcessError:
+        console.log("[red]:x: Error: wget returned non-zero exit code.")
+        return
+    console.log("Download complete, checking hash...")
+    verify(hash_type, expected_hash, output_file)
 
 
 if __name__ == "__main__":
