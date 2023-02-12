@@ -87,7 +87,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     def read_chunk():
         nonlocal bytes_read
         if max_read is not None:
-            progress.console.log(f"[dim i]{bytes_read:,} / {max_read:,}")
+            # progress.console.log(f"[dim i]{bytes_read:,} / {max_read:,}")
             if bytes_read >= max_read:
                 return b""
             elif bytes_read + chunk_size > max_read:
