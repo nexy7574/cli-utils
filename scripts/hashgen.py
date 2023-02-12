@@ -678,9 +678,10 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
 
 @main.command(name="flash", aliases=["f", "image", "i"])
 @click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys()) + ["auto"]), default="auto")
+@click.option("--sync-writes", "-s", is_flag=True)
 @click.argument("input_file", type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.argument("output_file", type=click.Path(writable=True, dir_okay=False))
-def flash_image(hash_type: str, input_file: str, output_file: str):
+def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file: str):
     """Wrapper for `dd` and then verifying the hash"""
     console = get_console()
     console.log("Begging flash of image...")
@@ -708,6 +709,8 @@ def flash_image(hash_type: str, input_file: str, output_file: str):
                 if not data:
                     break
                 output_buffer.write(data)
+                if sync_writes:
+                    output_buffer.flush()
                 progress.advance(task, len(data))
         task2 = progress.add_task(f"Generating hash for {input_file}", total=stat.st_size)
         with open(input_file, "rb") as input_buffer:
