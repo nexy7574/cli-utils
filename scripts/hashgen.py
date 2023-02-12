@@ -109,7 +109,7 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
         progress.update(task, advance=len(chunk))
         bytes_read += len(chunk)
     if progress.tasks[task].total != progress.tasks[task].completed:
-        progress.update(task, completed=bytes_read, total=bytes_read)
+        progress.update(task, completed=bytes_read)
 
     try:
         return hash_obj.hexdigest()
