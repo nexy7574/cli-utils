@@ -616,7 +616,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
     "--output-file",
     "-o",
     "output_file",
-    type=click.Path(exists=True, dir_okay=False),
+    type=click.Path(),
     default="/tmp/.hashgen.download.part"
 )
 @click.argument("url", type=str)
