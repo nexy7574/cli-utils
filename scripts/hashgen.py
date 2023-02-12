@@ -704,63 +704,65 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
 @click.argument("output_file", type=click.Path(writable=True, dir_okay=False))
 def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file: str):
     """Wrapper for `dd` and then verifying the hash"""
-    console = get_console()
-    if output_file.startswith("/dev/") or input_file.startswith("/dev/"):
-        console.print("[yellow]:warning: The hash verification on block devices may produce false negatives.[/]")
-    if hash_type == "auto":
-        hash_type = "sha256"
-    console.log("Begging flash of image...")
-
-    if os.name != "nt":
-
-        def signal_handler(*_):
-            global kill
-            try:
-                for _task in progress.tasks:
-                    if _task.completed != _task.total:
-                        progress.update(_task.id, description=_task.description + " (Cancelling)")
-            except NameError:
-                # Killed before progress bar was created
-                pass
-            kill = True
-            console.print("Interrupt handled, stopping threads (ctrl+d to force exit).")
-
-        signal.signal(signal.SIGINT, signal_handler)
-
-    stat = os.stat(input_file)
-    block_size = stat.st_blksize
-    console.log("Block size:", block_size)
-    blocks_read = 0
-
-    with generate_progress(console, verbose=True) as progress:
-        with open(input_file, "rb") as input_buffer, open(output_file, "wb") as output_buffer:
-            task = progress.add_task(f"Flashing {input_file}->{output_file}", total=stat.st_size)
-            while True:
-                data = input_buffer.read(block_size)
-                if not data:
-                    break
-                blocks_read += 1
-                output_buffer.write(data)
-                if sync_writes:
-                    output_buffer.flush()
-                    os.fsync(output_buffer.fileno())
-                progress.advance(task, len(data))
-        task2 = progress.add_task(f"Generating hash for {input_file}", total=stat.st_size)
-        with open(input_file, "rb") as input_buffer:
-            _hash = generate_hash(input_buffer, hash_type, task2, progress, block_size)
-        console.log("Hash generated:", _hash)
-        console.log("Verifying hash...")
-        task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
-        with open(output_file, "rb") as output_buffer:
-            assert block_size * blocks_read == stat.st_size, f"Block size * blocks read ({block_size * blocks_read}) != stat.st_size ({stat.st_size})"
-            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, blocks_read)
-        console.log("Hash generated:", file_hash)
-    if file_hash == _hash:
-        console.print(f"[green]Hashes match![/]")
-    else:
-        console.print(f"[red]Hashes do not match![/]")
-        console.print(f"[cyan]{hash_type} Source[/]: {_hash}")
-        console.print(f"[cyan]{hash_type} Target[/]: {file_hash}")
+    raise NotImplementedError("This command is not yet implemented.")
+    # TODO: Figure out why this doesn't verify correctly
+    # console = get_console()
+    # if output_file.startswith("/dev/") or input_file.startswith("/dev/"):
+    #     console.print("[yellow]:warning: The hash verification on block devices may produce false negatives.[/]")
+    # if hash_type == "auto":
+    #     hash_type = "sha256"
+    # console.log("Begging flash of image...")
+    #
+    # if os.name != "nt":
+    #
+    #     def signal_handler(*_):
+    #         global kill
+    #         try:
+    #             for _task in progress.tasks:
+    #                 if _task.completed != _task.total:
+    #                     progress.update(_task.id, description=_task.description + " (Cancelling)")
+    #         except NameError:
+    #             # Killed before progress bar was created
+    #             pass
+    #         kill = True
+    #         console.print("Interrupt handled, stopping threads (ctrl+d to force exit).")
+    #
+    #     signal.signal(signal.SIGINT, signal_handler)
+    #
+    # stat = os.stat(input_file)
+    # block_size = stat.st_blksize
+    # console.log("Block size:", block_size)
+    # blocks_read = 0
+    #
+    # with generate_progress(console, verbose=True) as progress:
+    #     with open(input_file, "rb") as input_buffer, open(output_file, "wb") as output_buffer:
+    #         task = progress.add_task(f"Flashing {input_file}->{output_file}", total=stat.st_size)
+    #         while True:
+    #             data = input_buffer.read(block_size)
+    #             if not data:
+    #                 break
+    #             blocks_read += 1
+    #             output_buffer.write(data)
+    #             if sync_writes:
+    #                 output_buffer.flush()
+    #                 os.fsync(output_buffer.fileno())
+    #             progress.advance(task, len(data))
+    #     task2 = progress.add_task(f"Generating hash for {input_file}", total=stat.st_size)
+    #     with open(input_file, "rb") as input_buffer:
+    #         _hash = generate_hash(input_buffer, hash_type, task2, progress, block_size)
+    #     console.log("Hash generated:", _hash)
+    #     console.log("Verifying hash...")
+    #     task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
+    #     with open(output_file, "rb") as output_buffer:
+    #         assert block_size * blocks_read == stat.st_size, f"Block size * blocks read ({block_size * blocks_read}) != stat.st_size ({stat.st_size})"
+    #         file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, blocks_read)
+    #     console.log("Hash generated:", file_hash)
+    # if file_hash == _hash:
+    #     console.print(f"[green]Hashes match![/]")
+    # else:
+    #     console.print(f"[red]Hashes do not match![/]")
+    #     console.print(f"[cyan]{hash_type} Source[/]: {_hash}")
+    #     console.print(f"[cyan]{hash_type} Target[/]: {file_hash}")
 
 
 
