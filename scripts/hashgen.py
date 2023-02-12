@@ -74,11 +74,15 @@ for _k in types.copy().keys():
         types[_k.replace("sha", "", 1)] = types[_k]
 
 
-def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, chunk_size: int, max_read: int = None) -> str:
+def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, chunk_size: int, max_blocks: int = None) -> str:
     """Generate hash from file object"""
     hash_obj = types[name]
     progress.start_task(task)
     bytes_read = 0
+    max_read = None
+    if max_blocks:
+        max_read = max_blocks * chunk_size
+        progress.console.log(f"[yellow]:warning: reading up to {max_read:,} bytes.")
 
     def read_chunk():
         nonlocal bytes_read
@@ -473,15 +477,7 @@ def verify(hash_type: str, hash_value: str, file: str):
         stat = path.stat(follow_symlinks=True)
         size = stat.st_size
 
-    columns = list(Progress.get_default_columns())
-    columns.insert(0, SpinnerColumn("bouncingBar"))
-    columns.insert(-1, FileSizeColumn())
-    columns.insert(-1, TotalFileSizeColumn())
-    columns.insert(-1, TransferSpeedColumn())
-    columns.insert(-1, TimeElapsedColumn())
-    columns[-1] = TimeRemainingColumn(True)
-
-    with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
+    with generate_progress(console) as progress:
         buffer = file
         task = progress.add_task(f"Checking {hash_type} hash", total=size)
         file_hash = generate_hash(buffer, hash_type, task, progress, 1024 * 1024 * 32)
@@ -678,15 +674,7 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
             console.print("[red]:x: Error: Could not determine hash type. Please specify manually via --hash-type")
             return
 
-    columns = list(Progress.get_default_columns())
-    columns.insert(0, SpinnerColumn("bouncingBar"))
-    columns.insert(-1, FileSizeColumn())
-    columns.insert(-1, TotalFileSizeColumn())
-    columns.insert(-1, TransferSpeedColumn())
-    columns.insert(-1, TimeElapsedColumn())
-    columns[-1] = TimeRemainingColumn(True)
-
-    with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
+    with generate_progress(console) as progress:
         stat = os.stat(output_file)
         buffer = open(output_file, "rb")
         task = progress.add_task(f"Checking {hash_type} hash", total=stat.st_size)
@@ -735,23 +723,16 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
     stat = os.stat(input_file)
     block_size = stat.st_blksize
     console.log("Block size:", block_size)
-    columns = list(Progress.get_default_columns())
-    columns.insert(0, SpinnerColumn("bouncingBar"))
-    columns.insert(-1, FileSizeColumn())
-    columns.insert(-1, TotalFileSizeColumn())
-    columns.insert(-1, TransferSpeedColumn())
-    columns.insert(-1, TimeElapsedColumn())
-    columns[-1] = TimeRemainingColumn(True)
-    buffer_read = 0
+    blocks_read = 0
 
-    with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
+    with generate_progress(console) as progress:
         with open(input_file, "rb") as input_buffer, open(output_file, "wb") as output_buffer:
             task = progress.add_task(f"Flashing {input_file}->{output_file}", total=stat.st_size)
             while True:
                 data = input_buffer.read(block_size)
                 if not data:
                     break
-                buffer_read += len(data)
+                blocks_read += 1
                 output_buffer.write(data)
                 if sync_writes:
                     output_buffer.flush()
@@ -764,7 +745,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
         console.log("Verifying hash...")
         task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
         with open(output_file, "rb") as output_buffer:
-            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, buffer_read)
+            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, blocks_read)
         console.log("Hash generated:", file_hash)
     if file_hash == _hash:
         console.print(f"[green]Hashes match![/]")
