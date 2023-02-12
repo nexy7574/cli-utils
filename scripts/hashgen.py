@@ -631,7 +631,6 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
         console.log("[red]:x: Error: wget returned non-zero exit code.")
         return
     console.log("Download complete, checking hash...")
-    verify(hash_type, expected_hash, output_file)
     _hash = expected_hash
     console = get_console()
     sizes = {
