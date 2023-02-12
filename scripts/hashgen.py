@@ -705,6 +705,8 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
 def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file: str):
     """Wrapper for `dd` and then verifying the hash"""
     console = get_console()
+    if output_file.startswith("/dev/") or input_file.startswith("/dev/"):
+        console.print("[yellow]:warning: The hash verification on block devices may produce false negatives.[/]")
     if hash_type == "auto":
         hash_type = "sha256"
     console.log("Begging flash of image...")
@@ -750,6 +752,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
         console.log("Verifying hash...")
         task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
         with open(output_file, "rb") as output_buffer:
+            assert block_size * blocks_read == stat.st_size, f"Block size * blocks read ({block_size * blocks_read}) != stat.st_size ({stat.st_size})"
             file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, blocks_read)
         console.log("Hash generated:", file_hash)
     if file_hash == _hash:
