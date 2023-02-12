@@ -670,6 +670,10 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
         console.print(f"[red]Hashes do not match![/]")
         console.print(f"[cyan]{hash_type} Provided[/]: {_hash}")
         console.print(f"[cyan]{hash_type} Calculated[/]: {file_hash}")
+    try:
+        os.remove(output_file)
+    except (FileNotFoundError, OSError) as e:
+        console.print(f"[red]:x: Error: Could not remove temporary file {output_file!r} due to error {e!r}[/]")
 
 
 if __name__ == "__main__":
