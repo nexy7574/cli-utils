@@ -90,6 +90,8 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
             if bytes_read >= max_read:
                 return b""
             elif bytes_read + chunk_size > max_read:
+                progress.console.log(f"[yellow]:warning: reading less than chunk size "
+                                     f"({max_read - bytes_read:,} vs {chunk_size:,}).")
                 _chunk = obj.read(max_read - bytes_read)
                 bytes_read += len(_chunk)
                 return _chunk
