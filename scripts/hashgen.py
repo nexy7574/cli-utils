@@ -626,12 +626,51 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
     console = get_console()
     console.log("Begging download of file...")
     try:
-        subprocess.run(["wget", *wget_options.split(), f"-O {output_file}", url], check=True)
+        subprocess.run(["wget", *wget_options.split(), "-O", output_file, url], check=True)
     except subprocess.CalledProcessError:
         console.log("[red]:x: Error: wget returned non-zero exit code.")
         return
     console.log("Download complete, checking hash...")
     verify(hash_type, expected_hash, output_file)
+    _hash = expected_hash
+    console = get_console()
+    sizes = {
+        "md5": 32,
+        "sha1": 40,
+        "sha224": 56,
+        "sha256": 64,
+        "sha384": 96,
+        "sha512": 128,
+    }
+    if hash_type == "auto":
+        for _type, _size in sizes.items():
+            if len(_hash) == _size:
+                hash_type = _type
+                break
+        else:
+            console.print("[red]:x: Error: Could not determine hash type. Please specify manually via --hash-type")
+            return
+
+    columns = list(Progress.get_default_columns())
+    columns.insert(0, SpinnerColumn("bouncingBar"))
+    columns.insert(-1, FileSizeColumn())
+    columns.insert(-1, TotalFileSizeColumn())
+    columns.insert(-1, TransferSpeedColumn())
+    columns.insert(-1, TimeElapsedColumn())
+    columns[-1] = TimeRemainingColumn(True)
+
+    with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
+        stat = os.stat(output_file)
+        buffer = open(output_file, "rb")
+        task = progress.add_task(f"Checking {hash_type} hash", total=stat.st_size)
+        file_hash = generate_hash(buffer, hash_type, task, progress, 1024 * 1024 * 32)
+
+    if file_hash == _hash:
+        console.print(f"[green]Hashes match![/]")
+    else:
+        console.print(f"[red]Hashes do not match![/]")
+        console.print(f"[cyan]{hash_type} Provided[/]: {_hash}")
+        console.print(f"[cyan]{hash_type} Calculated[/]: {file_hash}")
 
 
 if __name__ == "__main__":
