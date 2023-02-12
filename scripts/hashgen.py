@@ -684,6 +684,8 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
 def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file: str):
     """Wrapper for `dd` and then verifying the hash"""
     console = get_console()
+    if hash_type == "auto":
+        hash_type = "sha256"
     console.log("Begging flash of image...")
     # First, we need to open the source file. And then open the target file. And then write the source file to the target file.
     # And then close the target file. And then close the source file.
