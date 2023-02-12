@@ -625,6 +625,21 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
     """Wrapper for wget and then checking the hash afterwards."""
     console = get_console()
     console.log("Begging download of file...")
+    if os.name != "nt":
+
+        def signal_handler(*_):
+            global kill
+            try:
+                for _task in progress.tasks:
+                    if _task.completed != _task.total:
+                        progress.update(_task.id, description=_task.description + " (Cancelling)")
+            except NameError:
+                # Killed before progress bar was created
+                pass
+            kill = True
+            console.print("Interrupt handled, stopping threads (ctrl+d to force exit).")
+
+        signal.signal(signal.SIGINT, signal_handler)
     try:
         subprocess.run(["wget", *wget_options.split(), "-O", output_file, url], check=True)
     except subprocess.CalledProcessError:
@@ -687,10 +702,22 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
     if hash_type == "auto":
         hash_type = "sha256"
     console.log("Begging flash of image...")
-    # First, we need to open the source file. And then open the target file. And then write the source file to the target file.
-    # And then close the target file. And then close the source file.
-    # And then verify the hash.
-    # but lets stat the target file (or the source file if the target doesn't exist yet) and get the block size
+
+    if os.name != "nt":
+
+        def signal_handler(*_):
+            global kill
+            try:
+                for _task in progress.tasks:
+                    if _task.completed != _task.total:
+                        progress.update(_task.id, description=_task.description + " (Cancelling)")
+            except NameError:
+                # Killed before progress bar was created
+                pass
+            kill = True
+            console.print("Interrupt handled, stopping threads (ctrl+d to force exit).")
+
+        signal.signal(signal.SIGINT, signal_handler)
 
     stat = os.stat(input_file)
     block_size = stat.st_blksize
@@ -713,6 +740,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
                 output_buffer.write(data)
                 if sync_writes:
                     output_buffer.flush()
+                    os.fsync(output_buffer.fileno())
                 progress.advance(task, len(data))
         task2 = progress.add_task(f"Generating hash for {input_file}", total=stat.st_size)
         with open(input_file, "rb") as input_buffer:
