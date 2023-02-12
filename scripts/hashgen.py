@@ -737,6 +737,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
     columns.insert(-1, TransferSpeedColumn())
     columns.insert(-1, TimeElapsedColumn())
     columns[-1] = TimeRemainingColumn(True)
+    buffer_read = 0
 
     with Progress(*columns, console=console, refresh_per_second=12, expand=True) as progress:
         with open(input_file, "rb") as input_buffer, open(output_file, "wb") as output_buffer:
@@ -745,6 +746,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
                 data = input_buffer.read(block_size)
                 if not data:
                     break
+                buffer_read += len(data)
                 output_buffer.write(data)
                 if sync_writes:
                     output_buffer.flush()
@@ -757,7 +759,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
         console.log("Verifying hash...")
         task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
         with open(output_file, "rb") as output_buffer:
-            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, stat.st_size)
+            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, buffer_read)
         console.log("Hash generated:", file_hash)
     if file_hash == _hash:
         console.print(f"[green]Hashes match![/]")
