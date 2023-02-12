@@ -74,13 +74,21 @@ for _k in types.copy().keys():
         types[_k.replace("sha", "", 1)] = types[_k]
 
 
-def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, chunk_size: int) -> str:
+def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, chunk_size: int, max_read: int = None) -> str:
     """Generate hash from file object"""
     hash_obj = types[name]
-
     progress.start_task(task)
     bytes_read = 0
-    for chunk in iter(lambda: obj.read(chunk_size), b""):
+
+    def read_chunk():
+        nonlocal bytes_read
+        if max_read is not None and bytes_read >= max_read:
+            return b""
+        _chunk = obj.read(chunk_size)
+        bytes_read += len(_chunk)
+        return _chunk
+
+    for chunk in iter(read_chunk, b""):
         if kill:
             progress.stop_task(task)
             del hash_obj
@@ -749,7 +757,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
         console.log("Verifying hash...")
         task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
         with open(output_file, "rb") as output_buffer:
-            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size)
+            file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, stat.st_size)
         console.log("Hash generated:", file_hash)
     if file_hash == _hash:
         console.print(f"[green]Hashes match![/]")
