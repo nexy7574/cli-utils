@@ -727,7 +727,7 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
     console.log("Block size:", block_size)
     blocks_read = 0
 
-    with generate_progress(console) as progress:
+    with generate_progress(console, verbose=True) as progress:
         with open(input_file, "rb") as input_buffer, open(output_file, "wb") as output_buffer:
             task = progress.add_task(f"Flashing {input_file}->{output_file}", total=stat.st_size)
             while True:
