@@ -5,6 +5,7 @@ import subprocess
 import sys
 import pwd
 import os
+from pathlib import Path
 from tempfile import TemporaryFile
 from elevate import elevate
 from rich import get_console
@@ -36,12 +37,21 @@ def generate_unit_file(unit: dict, service: dict, install: dict):
 
 
 def main():
+    console.print("[link=https://wiki.archlinux.org/title/Systemd#Writing_unit_files]This may be of use (hyperlink)[/]")
+    console.print("[dim i](https://wiki.archlinux.org/title/Systemd#Writing_unit_files link for bad terminals)")
     _uname = getpass.getuser()
     types = ["simple", "exec", "forking", "oneshot", "dbus", "notify", "idle"]
     if os.getuid() != 0:
-        if Confirm.ask(
+        console.print(
             "This script requires root privileges in order to write to /etc/systemd/system. Do you want to "
             "attempt to elevate to root?"
+        )
+        console.print(
+            "If you do not elevate permissions, all configs will be written to your systemd user directory "
+            "($HOME/.config/systemd/user)."
+        )
+        if Confirm.ask(
+            "Do you want to elevate permissions? (this will re-launch the script as root)"
         ):
             console.log("[gray italics]Attempting to elevate program permissions...[/]")
             elevate()
@@ -250,34 +260,43 @@ def main():
                 return
         try:
             with open("/etc/systemd/system/{}.service".format(name), "w+") as wfile:
-                console.log("[gray italics]Writing file...[/]")
-                written = wfile.write(content)
-                console.log(f"[gray italics]Wrote {written} bytes to `/etc/systemd/system/{name}.service`.")
+                wfile.write(content)
+                USER_SERVICE = False
         except PermissionError:
             console.print_exception()
-            console.log("Unable to write configuration file. Writing to current directory.")
-            with open("./{}.service".format(name), "w+") as wfile:
+            console.log("Unable to write configuration file. Writing to user config directory.")
+            user_systemd = Path.home() / ".config" / "systemd" / "user"
+            user_systemd.mkdir(parents=True, exist_ok=True)
+            path = user_systemd / "{}.service".format(name)
+            with path.open("w+") as wfile:
                 wfile.write(content)
+                USER_SERVICE = True
             console.log(
-                f"Wrote service file to './{name}.service'. You can do `sudo mv {name}.service "
-                f"/etc/systemd/system/{name}.service` to move it."
+                f"Wrote service file to '{path}'. You can do `sudo mv {path} "
+                f"/etc/systemd/system/{name}.service` to move it to system-wide units, or use "
+                f"'systemd --user ...' to manage it."
             )
-            sys.exit(1)
+        system_ctl = ["systemctl"]
+        if USER_SERVICE is True:
+            system_ctl.append("--user")
+        if Confirm.ask("Would you like to start this service now?"):
+            try:
+                cmd = [*system_ctl, "start", name + ".service"]
+                console.print("$ " + " ".join(cmd))
+                subprocess.run(cmd, check=True)
+            except subprocess.SubprocessError:
+                console.log("[red]Failed to start service! Check journal.")
         else:
-            if Confirm.ask("Would you like to start this service now?"):
-                try:
-                    subprocess.run(["systemctl", "start", name + ".service"], check=True)
-                except subprocess.SubprocessError:
-                    console.log("[red]Failed to start service! Check journal.")
-            else:
-                console.log(
-                    "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`."
-                )
-            if Confirm.ask("Would you like to start this service on reboot?"):
-                try:
-                    subprocess.run(["systemctl", "enable", name + ".service"], check=True)
-                except subprocess.SubprocessError:
-                    console.log("[red]Failed to enable service! Check journal.")
+            console.log(
+                "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`."
+            )
+        if Confirm.ask("Would you like to start this service on reboot?"):
+            try:
+                cmd = [*system_ctl, "enable", name + ".service"]
+                console.print("$ " + " ".join(cmd))
+                subprocess.run(cmd, check=True)
+            except subprocess.SubprocessError:
+                console.log("[red]Failed to enable service! Check journal.")
 
 
 if __name__ == "__main__":
