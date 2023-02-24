@@ -230,14 +230,6 @@ def main():
                             console.print(":x: Memory Pressure disabled.")
                             break
 
-        task_limit = IntPrompt.ask("What task limit should this unit have? (e.g. 100)", default=1000)
-        if task_limit > 0:
-            service["TasksAccounting"] = "true"
-            service["TasksMax"] = str(task_limit)
-            console.print(":white_heavy_check_mark: Task Limiting enabled.")
-        else:
-            console.print(":x: Task Limiting disabled.")
-
     console.log("Generating file...")
     content = generate_unit_file(unit, service, install)
     console.print("===== BEGIN CONFIGURATION FILE =====")
