@@ -1,4 +1,5 @@
 import re
+import logging
 
 
 __all__ = (
@@ -29,8 +30,12 @@ def convert_soft_data_value_to_hard_data_value(value: str, return_in: str = "b")
     if _match is None:
         raise INVALID_ERR
 
+    logging.getLogger(__name__).debug(f"Match: {_match}")
+    logging.getLogger(__name__).debug(f"Groups: {_match.groups()}")
+
     try:
         _value, _unit = _match.groups()
+        _unit = _unit or "b"
     except ValueError:
         # No unit specified, default to bytes
         _value = _match.group()
