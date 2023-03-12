@@ -29,7 +29,7 @@ setup(
             "black>=22.10.0",
         ],
         "gui": [
-            "PyQt6>=6.2.0",
+            "PyQt5>=5.15.7",
         ],
     },
     python_requires=">=3.10",

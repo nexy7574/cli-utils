@@ -5,6 +5,7 @@
 # Furthermore, the input validation here is poorer than me.
 # I also wrote this while hysterical and vibing way too hard to songs that gave me way too much energy
 # If this works reliably, I will start being religious
+import json
 import os
 import sys
 import pwd
@@ -119,7 +120,7 @@ class RAMResourceLimitSubWidgetSubWidget(QWidget):  # who in their right mind wr
         for k, v in values.items():
             if v is not None:
                 try:
-                    values[k] = convert_soft_data_value_to_hard_data_value(v, "M")
+                    values[k] = convert_soft_data_value_to_hard_data_value(v, "B")
                 except (ValueError, ZeroDivisionError, OverflowError) as e:
                     logger.error(f"Failed to convert input for {k!r}: {v}.", exc_info=e)
                     QMessageBox.critical(
@@ -246,6 +247,17 @@ class FirstQuestions(QWidget):
         do_set_state_for(self.restart_on_exit, self.max_restarts_input)
         do_set_state_for(self.resource_limiting, self.resource_limit_sub_widget)
 
+        self.exec_path_label = QLabel("Command to execute:")
+        self.exec_path_input = QLineEdit()
+        self.exec_path_input.setPlaceholderText("e.g. /usr/bin/python3 /home/user/my_script.py")
+        layout.addWidget(self.exec_path_label, 6, 0)
+        layout.addWidget(self.exec_path_input, 6, 1, 1, 2)
+
+        self.generate_button = QPushButton("Generate unit")
+        # noinspection PyUnresolvedReferences
+        # self.generate_button.clicked.connect(self.generate_unit)
+        layout.addWidget(self.generate_button, 7, 0, 1, 3)
+
         if os.getenv("DEV") is not None:
             self.print_debug_info_button = QPushButton("Print debug info to console")
             # noinspection PyUnresolvedReferences
@@ -273,10 +285,21 @@ class FirstQuestions(QWidget):
             f"| RAM Limiting enabled: "
             f"{self.resource_limit_sub_widget.enable_ram_limiting_box.checkState() == Qt.Checked}",
             f"| | parsed data: {self.resource_limit_sub_widget.ram_resource_sub.get_machine_values()!r}",
+            f"Exec: {self.exec_path_input.text()!r}"
         ]
         for line in lines:
             print(line)
             logger.debug(line)
+
+        logger.debug("Attempting to generate unit data")
+        try:
+            data = self.get_data()
+            logger.debug("Successfully generated unit data")
+        except Exception as e:
+            logger.exception("Failed to generate unit data", exc_info=e)
+        else:
+            logger.debug(f"Generated unit data:")
+            logger.debug(json.dumps(data, indent=4))
         QMessageBox.information(
             self, "Check your console", "Debug logs have been outputted to both the log file and the parent terminal."
         )
@@ -298,12 +321,16 @@ class FirstQuestions(QWidget):
         cpu_limit = self.resource_limit_sub_widget.cpu_resource_sub.cpu_quota_input.text()
         ram_limiting = self.resource_limit_sub_widget.enable_ram_limiting_box.checkState() == Qt.Checked
         ram_limit = self.resource_limit_sub_widget.ram_resource_sub.get_machine_values()
+        exec_path = self.exec_path_input.text()
 
         if not name:
             show_validation_error("You must specify a name for the unit")
             return
         if not description:
             show_validation_error("You must specify a human name for the unit")
+            return
+        if not exec_path:
+            show_validation_error("You must specify a command to execute")
             return
 
         if restart_on_exit:
@@ -333,6 +360,37 @@ class FirstQuestions(QWidget):
             if int(cpu_limit) > _max:
                 show_validation_error(f"The CPU quota must be less than or equal to {_max}")
                 return
+
+        return {
+            "name": name,
+            "description": description,
+            "unit_type": unit_type,
+            "user": user,
+            "restart_on_exit": restart_on_exit,
+            "max_restarts": max_restarts,
+            "requires_network": requires_network,
+            "resource_limiting": resource_limiting,
+            "resource_limits": {
+                "cpu_limiting": cpu_limiting,
+                "cpu_limit": cpu_limit,
+                "ram_limiting": ram_limiting,
+                "ram_limit": ram_limit,
+            }
+        }
+
+    def _gen_unit_data(self):
+        """Generates unit file data"""
+        data = self.get_data()
+        unit = {
+            "Description": data["description"],
+        }
+
+        service = {
+            "Type": data["unit_type"],
+            "RemainAfterExit": "no",
+
+        }
+        install= {}
 
 
 class WindowController(QObject):
