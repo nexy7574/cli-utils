@@ -40,8 +40,9 @@ if typing.TYPE_CHECKING:
 # (n being number of processes), or read the file n times; either way, this is really wasteful.
 # At least with threading, it will be ever so slightly faster than single-threaded, despite the GIL limitations.
 
-DEFAULT_WGET_OPTIONS = "-c -O /tmp/.hashgen.download.part -t 5 --compression=auto -q --show-progress --progress=bar" \
-                       " --no-cache "
+DEFAULT_WGET_OPTIONS = (
+    "-c -O /tmp/.hashgen.download.part -t 5 --compression=auto -q --show-progress --progress=bar" " --no-cache "
+)
 
 
 def get_hasher(name: str) -> callable:
@@ -74,7 +75,9 @@ for _k in types.copy().keys():
         types[_k.replace("sha", "", 1)] = types[_k]
 
 
-def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, chunk_size: int, max_blocks: int = None) -> str:
+def generate_hash(
+    obj: BinaryIO, name: str, task: TaskID, progress: Progress, chunk_size: int, max_blocks: int = None
+) -> str:
     """Generate hash from file object"""
     hash_obj = types[name]
     progress.start_task(task)
@@ -91,8 +94,9 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
             if bytes_read >= max_read:
                 return b""
             elif bytes_read + chunk_size > max_read:
-                progress.console.log(f"[yellow]:warning: reading less than chunk size "
-                                     f"({max_read - bytes_read:,} vs {chunk_size:,}).")
+                progress.console.log(
+                    f"[yellow]:warning: reading less than chunk size " f"({max_read - bytes_read:,} vs {chunk_size:,})."
+                )
                 _chunk = obj.read(max_read - bytes_read)
                 bytes_read += len(_chunk)
                 return _chunk
@@ -112,7 +116,9 @@ def generate_hash(obj: BinaryIO, name: str, task: TaskID, progress: Progress, ch
     if progress.tasks[task].total != progress.tasks[task].completed:
         progress.update(task, completed=bytes_read)
 
-    assert progress.tasks[task].total == progress.tasks[task].completed, f"Forgot {progress.tasks[task].total - progress.tasks[task].completed:,} bytes."
+    assert (
+        progress.tasks[task].total == progress.tasks[task].completed
+    ), f"Forgot {progress.tasks[task].total - progress.tasks[task].completed:,} bytes."
 
     try:
         return hash_obj.hexdigest()
@@ -219,8 +225,10 @@ def can_use_ram(
 def main():
     """File hashing utility.
 
-    This utility can be used to generate a vast selection of file hashes, comparing files via their hashes, and hash validation.
-    Hashgen is useful for hashing large files, which may take a long time, as you can see what the program is doing in real time.
+    This utility can be used to generate a vast selection of file hashes, comparing files via their hashes,
+    and hash validation.
+    Hashgen is useful for hashing large files, which may take a long time, as you can see what the program is doing
+    in real time.
     Hashgen is also highly configurable."""
     pass
 
@@ -550,7 +558,8 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
     )
     if no_ram is False:
         console.log(
-            "[yellow]:information: Info: RAM pre-loading is disabled due to bugs that will be removed in a future update."
+            "[yellow]:information: Info: RAM pre-loading is disabled due to bugs that will be removed in a "
+            "future update."
         )
 
     if single_thread:
@@ -624,15 +633,11 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
 
 
 @main.command(name="download", aliases=["dl", "d"])
-@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys()) + ["auto"]), default="auto")
-@click.option("--wget-options", default=DEFAULT_WGET_OPTIONS)
 @click.option(
-    "--output-file",
-    "-o",
-    "output_file",
-    type=click.Path(),
-    default="/tmp/.hashgen.download.part"
+    "--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys()) + ["auto"]), default="auto"
 )
+@click.option("--wget-options", default=DEFAULT_WGET_OPTIONS)
+@click.option("--output-file", "-o", "output_file", type=click.Path(), default="/tmp/.hashgen.download.part")
 @click.argument("url", type=str)
 @click.argument("expected_hash", type=str)
 def download_file(hash_type: str, wget_options: str, output_file: str, url: str, expected_hash: str):
@@ -698,7 +703,9 @@ def download_file(hash_type: str, wget_options: str, output_file: str, url: str,
 
 
 @main.command(name="flash", aliases=["f", "image", "i"])
-@click.option("--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys()) + ["auto"]), default="auto")
+@click.option(
+    "--hash-type", "--type", "-T", "hash_type", type=click.Choice(list(types.keys()) + ["auto"]), default="auto"
+)
 @click.option("--sync-writes", "-s", is_flag=True)
 @click.argument("input_file", type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.argument("output_file", type=click.Path(writable=True, dir_okay=False))
@@ -754,7 +761,8 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
     #     console.log("Verifying hash...")
     #     task3 = progress.add_task(f"Verifying hash for {output_file}", total=stat.st_size)
     #     with open(output_file, "rb") as output_buffer:
-    #         assert block_size * blocks_read == stat.st_size, f"Block size * blocks read ({block_size * blocks_read}) != stat.st_size ({stat.st_size})"
+    #         assert block_size * blocks_read == stat.st_size, \
+    #         f"Block size * blocks read ({block_size * blocks_read}) != stat.st_size ({stat.st_size})"
     #         file_hash = generate_hash(output_buffer, hash_type, task3, progress, block_size, blocks_read)
     #     console.log("Hash generated:", file_hash)
     # if file_hash == _hash:
@@ -763,7 +771,6 @@ def flash_image(hash_type: str, sync_writes: bool, input_file: str, output_file:
     #     console.print(f"[red]Hashes do not match![/]")
     #     console.print(f"[cyan]{hash_type} Source[/]: {_hash}")
     #     console.print(f"[cyan]{hash_type} Target[/]: {file_hash}")
-
 
 
 if __name__ == "__main__":

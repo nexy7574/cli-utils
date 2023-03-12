@@ -23,6 +23,7 @@ from PyQt5.QtCore import (
     Q_ARG,
     QRegExp,
 )
+
 # WHAT IS HALF OF THIS???
 from PyQt5.QtGui import QIntValidator, QTextCursor, QRegExpValidator
 from PyQt5.QtWidgets import (
@@ -39,8 +40,9 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QTreeWidget,
     QTreeWidgetItem,
-    QGroupBox
+    QGroupBox,
 )
+
 # Why don't I just `import *`? Because I'm f*cking insane apparently.
 # PyQt (Qt in general) scares me.
 
@@ -109,10 +111,10 @@ class RAMResourceLimitSubWidgetSubWidget(QWidget):  # who in their right mind wr
 
     def get_machine_values(self) -> Dict[str, int | None]:
         """Parses input into machine-readable values. In this case, it converts all human inputs to bytes or None."""
-        values =  {
+        values = {
             "min_ram": self.min_memory_input.text() or None,
             "max_ram": self.max_memory_input.text() or None,
-            "pressure_ram": self.pressure_memory_input.text() or None
+            "pressure_ram": self.pressure_memory_input.text() or None,
         }
         for k, v in values.items():
             if v is not None:
@@ -124,7 +126,7 @@ class RAMResourceLimitSubWidgetSubWidget(QWidget):  # who in their right mind wr
                         self,
                         "Failed to convert values",
                         f"Failed to parse value {v!r} (for key {k!r}) into megabytes: {e}\n\n"
-                        f"Review your inputs and try again."
+                        f"Review your inputs and try again.",
                     )
                     raise RuntimeError("Failed to convert. Do not abort.")
                 else:
@@ -185,7 +187,7 @@ class FirstQuestions(QWidget):
             "unit_type": None,
             "restart_on_exit": None,
             "requires_network": None,
-            "user": None
+            "user": None,
         }
 
         self.setWindowTitle("SystemD Unit Generator")
@@ -265,28 +267,24 @@ class FirstQuestions(QWidget):
             f"| Max restarts: {self.max_restarts_input.text()!r}",
             f"Requires network: {self.requires_network.checkState() == Qt.Checked}",
             f"Resource Limiting: {self.resource_limiting.checkState() == Qt.Checked}",
-            f"| CPU Limiting enabled: {self.resource_limit_sub_widget.enable_cpu_limiting_box.checkState() == Qt.Checked}",
+            f"| CPU Limiting enabled: "
+            f"{self.resource_limit_sub_widget.enable_cpu_limiting_box.checkState() == Qt.Checked}",
             f"| | CPU Limit: {self.resource_limit_sub_widget.cpu_resource_sub.cpu_quota_input.text()}%",
-            f"| RAM Limiting enabled: {self.resource_limit_sub_widget.enable_ram_limiting_box.checkState() == Qt.Checked}",
-            f"| | parsed data: {self.resource_limit_sub_widget.ram_resource_sub.get_machine_values()!r}"
+            f"| RAM Limiting enabled: "
+            f"{self.resource_limit_sub_widget.enable_ram_limiting_box.checkState() == Qt.Checked}",
+            f"| | parsed data: {self.resource_limit_sub_widget.ram_resource_sub.get_machine_values()!r}",
         ]
         for line in lines:
             print(line)
             logger.debug(line)
         QMessageBox.information(
-            self,
-            "Check your console",
-            "Debug logs have been outputted to both the log file and the parent terminal."
+            self, "Check your console", "Debug logs have been outputted to both the log file and the parent terminal."
         )
 
     def get_data(self) -> dict | None:
         # We also need to perform validation here too.
         def show_validation_error(text: str):
-            QMessageBox.critical(
-                self,
-                "Validation error",
-                text
-            )
+            QMessageBox.critical(self, "Validation error", text)
 
         name = self.name_input.text()
         description = self.description_input.text()
@@ -349,21 +347,13 @@ class WindowController(QObject):
             QMessageBox.critical(
                 self.win,
                 "Incomplete program",
-                "This GUI is not ready yet and currently doesn't actually do anything, apart from look promising."
+                "This GUI is not ready yet and currently doesn't actually do anything, apart from look promising.",
             )
         else:
             # set up logger to go to a file
-            log_levels = {
-                "1": "DEBUG",
-                "2": "INFO",
-                "3": "WARNING",
-                "4": "ERROR",
-                "5": "CRITICAL"
-            }
+            log_levels = {"1": "DEBUG", "2": "INFO", "3": "WARNING", "4": "ERROR", "5": "CRITICAL"}
             logging.basicConfig(
-                filename="gui.debug.log",
-                filemode="w",
-                level=getattr(logging, log_levels[os.environ["DEV"]])
+                filename="gui.debug.log", filemode="w", level=getattr(logging, log_levels[os.environ["DEV"]])
             )
             global logger
             logger = logging

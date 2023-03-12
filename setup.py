@@ -1,26 +1,37 @@
-import glob
-
+from os import getenv
 from setuptools import setup
 from subprocess import run
 
-__VERSION__ = (
-    "0.1.0+g"
-    + run(("git", "rev-parse", "--short", "HEAD"), capture_output=True, encoding="utf-8", check=True).stdout.strip()
-)
+base_version = getenv("UTILS_BUILD_VERSION", "0.2.0a1")
+if getenv("UTILS_RELEASE", "0") == "1":
+    version = base_version
+else:
+    _commit = run(("git", "rev-list", "--count", "HEAD"), capture_output=True, encoding="utf-8").stdout
+    _commit = _commit.strip()
+    version = f"{base_version}.dev{_commit}"
 
 with open("./requirements.txt") as file:
     requirements = file.read().splitlines()
 
 setup(
     name="cli-utils",
-    version=__VERSION__,
+    version=version,
     packages=["scripts", "scripts.utils"],
     url="https://github.com/EEKIM10/cli-utils",
     license="GNU General Public License v3.0",
     author="nex",
-    author_email="",
+    author_email="packages+cli-utils@nexy7574.co.uk",
     description="A set of CLI tools that I use.",
     install_requires=requirements,
+    extras_require={
+        "dev": [
+            "pycodestyle>=2.10.0",
+            "black>=22.10.0",
+        ],
+        "gui": [
+            "PyQt6>=6.2.0",
+        ],
+    },
     python_requires=">=3.10",
     entry_points={
         "console_scripts": [

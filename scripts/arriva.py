@@ -68,7 +68,7 @@ def do_request(session, url: str, stage: str, *args, method: str = "GET", **kwar
             timeout = kwargs.get("timeout") or 10
             if not isinstance(timeout, int):
                 timeout = 10
-            timeout += (timeout * 0.25)
+            timeout += timeout * 0.25
             console.log(f"[red]:warning: Timed out on {stage} - retrying in {timeout} seconds (attempt {retries}/5)")
             return do_request(session, url, stage, *args, method=method, timeout=timeout, **kwargs)
         except requests.ConnectionError as e:
@@ -78,7 +78,9 @@ def do_request(session, url: str, stage: str, *args, method: str = "GET", **kwar
             console.log(f"[red]:warning: Connection to {stage} aborted!")
             return
     if verbose:
-        console.log(f"[green]:white_check_mark: GET {response.url}: {response.status_code} ({round((end - start)*1000)}ms)")
+        console.log(
+            f"[green]:white_check_mark: GET {response.url}: {response.status_code} ({round((end - start)*1000)}ms)"
+        )
     return response
 
 

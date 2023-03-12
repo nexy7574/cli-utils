@@ -12,12 +12,12 @@ from rich import get_console
 from rich.prompt import Prompt, IntPrompt, Confirm
 from rich.syntax import Syntax
 from scripts.utils.generic__size import convert_soft_data_value_to_hard_data_value
+
 if os.name == "nt":
     print("This script is not supported on Windows.", file=sys.stderr)
     sys.exit(1)
 
 console = get_console()
-
 
 
 def generate_unit_file(unit: dict, service: dict, install: dict):
@@ -50,9 +50,7 @@ def main():
             "If you do not elevate permissions, all configs will be written to your systemd user directory "
             "($HOME/.config/systemd/user)."
         )
-        if Confirm.ask(
-            "Do you want to elevate permissions? (this will re-launch the script as root)"
-        ):
+        if Confirm.ask("Do you want to elevate permissions? (this will re-launch the script as root)"):
             console.log("[gray italics]Attempting to elevate program permissions...[/]")
             elevate()
 
@@ -70,9 +68,7 @@ def main():
     max_restarts = time_between_restarts = 0
     if restart_on_death:
         max_restarts = IntPrompt.ask("How many times can this service restart before systemd gives up?", default=10)
-        time_between_restarts = IntPrompt.ask(
-            "How long, in seconds, should systemd wait between restarts?", default=5
-        )
+        time_between_restarts = IntPrompt.ask("How long, in seconds, should systemd wait between restarts?", default=5)
     exec_path = Prompt.ask(
         f"What command should this service run? (e.g. /usr/bin/python3 /home/{_uname}/my_script.py --arg1)"
     )
@@ -120,8 +116,8 @@ def main():
     }
 
     if Confirm.ask(
-            "Would you like to restrict the system resources this unit can use? (you probably only need this if "
-            "you're running on a low-end server or VPS)"
+        "Would you like to restrict the system resources this unit can use? (you probably only need this if "
+        "you're running on a low-end server or VPS)"
     ):
         console.print("All inputs are optional here - just hit enter if you want to skip a value!")
         console.print(
@@ -279,9 +275,7 @@ def main():
             except subprocess.SubprocessError:
                 console.log("[red]Failed to start service! Check journal.")
         else:
-            console.log(
-                "Finished writing configuration file.\nTo start the service, run `sudo service {name} start`."
-            )
+            console.log("Finished writing configuration file.\nTo start the service, run `sudo service {name} start`.")
         if Confirm.ask("Would you like to start this service on reboot?"):
             try:
                 cmd = [*system_ctl, "enable", name + ".service"]

@@ -10,7 +10,8 @@ AND MAY CAUSE YOUR COMPUTER TO OVERHEAT AND BURN DOWN YOUR HOUSE AND MAKE YOU LO
 
 Seriously though, while it is unlikely to cause any damage, I am not responsible for any damage this script may cause.
 Lowering the fan "boost" mode and then doing something CPU/GPU intensive over a long period of time may raise
-temperatures beyond their safe operating limit, even with thermal throttling, which may result in damage to your computer.
+temperatures beyond their safe operating limit, even with thermal throttling,
+which may result in damage to your computer.
 
 Use at your own risk.
 
@@ -22,7 +23,7 @@ It appears that overboost always slows the fans at around 40c to that of the nor
 however does not exceed a lower than "balanced" RPM, even when the CPU is overheating. Balanced mode is the default,
 so not much to say there.
 """
-import io
+import elevate
 import os
 import sys
 import subprocess
@@ -38,8 +39,6 @@ __import__("warnings").warn(
 )
 
 __PATH__ = Path("/sys/devices/platform/asus-nb-wmi/fan_boost_mode")
-
-import elevate
 
 MODES = ["balanced", "overboost", "silent"]
 MODES_AND_ALIASES = {

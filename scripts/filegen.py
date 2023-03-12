@@ -5,8 +5,15 @@ import os
 from pathlib import Path
 from typing import Literal
 from rich import get_console
-from rich.progress import Progress, SpinnerColumn, FileSizeColumn, TotalFileSizeColumn, TransferSpeedColumn, \
-    TimeElapsedColumn, TimeRemainingColumn
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    FileSizeColumn,
+    TotalFileSizeColumn,
+    TransferSpeedColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from scripts.utils.generic__size import convert_soft_data_value_to_hard_data_value
 
 
@@ -14,7 +21,9 @@ from scripts.utils.generic__size import convert_soft_data_value_to_hard_data_val
 @click.option("--size", "-S", help="Size of the file to generate. Must end in B, KB, MB, GB, or TB.", required=True)
 @click.option("--output", "-O", help="Output file.", type=click.Path(dir_okay=False))
 @click.option("--block-size", "--bs", "-B", "-S", default=0, help="Block size to use for writing. 0 indicates auto.")
-@click.option("--source", "--src", help="How to generate the file.", type=click.Choice(["urandom", "zero"]), default="zero")
+@click.option(
+    "--source", "--src", help="How to generate the file.", type=click.Choice(["urandom", "zero"]), default="zero"
+)
 @click.option("--sync", is_flag=True, help="Clears buffer on each block write.")
 @click.option("--verbose", "-V", is_flag=True, help="Prints more information.")
 def main(size: str, output: str, block_size: int, source: Literal["urandom", "zero"], sync: bool, verbose: bool):

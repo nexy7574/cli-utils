@@ -13,6 +13,7 @@ from rich import get_console
 from rich.prompt import Prompt, Confirm
 from rich.progress import Progress, TextColumn, SpinnerColumn, MofNCompleteColumn
 
+
 # noinspection DuplicatedCode
 class Main:
     def __init__(self, *, path: Path = None, skip_confirm: bool, dry: bool, quiet: bool, threaded: bool):

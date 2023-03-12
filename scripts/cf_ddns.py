@@ -38,15 +38,6 @@ class ZoneRecord(dict):
 
 
 @click.group(invoke_without_command=True)
-# @click.option("--ip", "--ip-service", "-I", default="https://api.ipify.org", help="Which IP service to grab an IP from. Can be a URL to fetch dynamically")
-# @click.option("--token", "--api-token", "-T", prompt=True, help="Your CloudFlare API token")
-# @click.option("--zone", "--zone-id", "-Z", prompt=True, help="The zone ID for your token")
-# @click.option("--old-ip", "-O", default=None, help="Will only replace records if their value matches this")
-# @click.option("--unless-a-record-is", "-U", default=None, help="Will replace records if their value does not match this")
-# @click.option("--yes", "-y", default=False, is_flag=True, help="Skip any prompts and answer with yes by default")
-# @click.option("--verbose", type=bool, default=False, is_flag=True, help="Enables (very) verbose output")
-# @click.option("--timeout", type=float, default=30.0, help="Sets the timeout for each request")
-# @click.argument("names", nargs=-1, help="The names of records (i.e. subdomains) to change")
 @click.option("--ip", "--ip-service", "-I", default="https://api.ipify.org")
 @click.option("--token", "--api-token", "-T", default=None, allow_from_autoenv=True)
 @click.option("--zone", "--zone-id", "-Z", default=None, allow_from_autoenv=True)

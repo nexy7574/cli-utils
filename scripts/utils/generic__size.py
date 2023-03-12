@@ -20,6 +20,7 @@ CAPACITY_VALUES = {
 CAPACITY_REGEX_RAW = r"(\d+)\s*([bkmgtBKMGT])*b*"
 CAPACITY_REGEX = re.compile(CAPACITY_REGEX_RAW, re.IGNORECASE)
 
+
 def convert_soft_data_value_to_hard_data_value(value: str, return_in: str = "b") -> float:
     INVALID_ERR = ValueError(
         "Invalid value. Make sure you specify a value in the format of `NNN C`, with C being"
