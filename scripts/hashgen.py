@@ -225,7 +225,7 @@ def can_use_ram(
             not no_ram, no_ram, multi_core, switched_to_single
         )
     )
-    return not no_ram, multi_core, switched_to_single
+    return no_ram, multi_core, switched_to_single
 
 
 @click.group(cls=ClickAliasedGroup)
