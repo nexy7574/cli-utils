@@ -221,9 +221,9 @@ def can_use_ram(
                 no_ram = True
 
     console.log(
-        "[dim i]Can use RAM: %s | multi-core: %s | switched to single: %s" % (no_ram, multi_core, switched_to_single)
+        "[dim i]Can use RAM: %s | multi-core: %s | switched to single: %s" % (not no_ram, multi_core, switched_to_single)
     )
-    return no_ram is False, multi_core, switched_to_single
+    return not no_ram, multi_core, switched_to_single
 
 
 @click.group(cls=ClickAliasedGroup)
@@ -557,7 +557,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
     no_ram, multi_core, switched_to_single = can_use_ram(
         sum(x.st_size for x in file_stats),
         count=2,
-        default=no_ram is False,
+        default=not no_ram,
         console=console,
         multi_core=not single_thread,
     )
