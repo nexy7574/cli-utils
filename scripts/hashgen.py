@@ -218,7 +218,8 @@ def can_use_ram(
                 )
                 no_ram = True
 
-    return not no_ram, multi_core, switched_to_single
+    console.log("[dim i]Can use RAM: %s | multi-core: %s | switched to single: %s", no_ram, multi_core, switched_to_single)
+    return no_ram is False, multi_core, switched_to_single
 
 
 @click.group(cls=ClickAliasedGroup)
@@ -552,7 +553,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
     no_ram, multi_core, switched_to_single = can_use_ram(
         sum(x.st_size for x in file_stats),
         count=2,
-        default=no_ram is True,
+        default=no_ram is False,
         console=console,
         multi_core=not single_thread,
     )
@@ -561,6 +562,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
             "[yellow]:information: Info: RAM pre-loading is disabled due to bugs that will be removed in a "
             "future update."
         )
+    # no_ram = False
 
     if single_thread:
         console.log("[yellow]:warning: Warning: Single-threaded mode is slow and inefficient.")
