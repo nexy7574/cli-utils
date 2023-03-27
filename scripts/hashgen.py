@@ -221,7 +221,9 @@ def can_use_ram(
                 no_ram = True
 
     console.log(
-        "[dim i]Can use RAM: %s | multi-core: %s | switched to single: %s" % (not no_ram, multi_core, switched_to_single)
+        "[dim i]Can use RAM: %s | no_ram: %s | multi-core: %s | switched to single: %s" % (
+            not no_ram, no_ram, multi_core, switched_to_single
+        )
     )
     return not no_ram, multi_core, switched_to_single
 
