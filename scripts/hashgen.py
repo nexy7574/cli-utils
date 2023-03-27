@@ -566,7 +566,7 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
             "[yellow]:information: Info: RAM pre-loading is disabled due to bugs that will be removed in a "
             "future update."
         )
-    # no_ram = False
+        no_ram = True
 
     if single_thread:
         console.log("[yellow]:warning: Warning: Single-threaded mode is slow and inefficient.")
