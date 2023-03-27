@@ -174,6 +174,8 @@ def can_use_ram(
                 if Confirm.ask("Continue with single-threaded hashing? (if not, will switch to direct disk)"):
                     multi_core = False
                     switched_to_single = True
+                else:
+                    no_ram = True
 
             if not switched_to_single:
                 table = Table(title=f"RAM Requirements for this {'multi-' if count > 1 else ''}hash")
@@ -221,7 +223,7 @@ def can_use_ram(
     console.log(
         "[dim i]Can use RAM: %s | multi-core: %s | switched to single: %s" % (no_ram, multi_core, switched_to_single)
     )
-    return not no_ram, multi_core, switched_to_single
+    return no_ram is False, multi_core, switched_to_single
 
 
 @click.group(cls=ClickAliasedGroup)
