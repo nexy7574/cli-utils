@@ -488,7 +488,6 @@ def verify(hash_type: str, hash_value: str, file: str):
             return
 
     if file == "-":
-        path = Path("stdin")
         file = click.open_file("-", "rb")
         size = None
     else:
@@ -563,12 +562,6 @@ def compare_files(hash_type: str, block_size: int, no_ram: bool, single_thread: 
         console=console,
         multi_core=not single_thread,
     )
-    if no_ram is False:
-        console.log(
-            "[yellow]:information: Info: RAM pre-loading is disabled due to bugs that will be removed in a "
-            "future update."
-        )
-        no_ram = True
 
     if single_thread:
         console.log("[yellow]:warning: Warning: Single-threaded mode is slow and inefficient.")
