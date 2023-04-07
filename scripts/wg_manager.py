@@ -88,7 +88,9 @@ def _list():
 
     configs = []
     for file in files:
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(
+            strict=False
+        )
         config.read(file)
         configs.append(config)
 
