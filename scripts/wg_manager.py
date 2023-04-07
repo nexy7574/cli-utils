@@ -66,9 +66,12 @@ def status(censor: bool, interface: str | None):
 
 @main.group()
 def peers():
-    """Commands for managing peers.
+    """Commands for managing peers."""
 
-    On its own, this command lists peers."""
+
+@peers.command(name="list")
+def _list():
+    """Lists existing peers & interfaces"""
     _dir = Path("/etc/wireguard")
     if not _dir.exists():
         console.print("[red]:x: Wireguard directory does not exist")
