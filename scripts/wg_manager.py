@@ -6,7 +6,7 @@ pretty!
 import os
 from io import StringIO
 from pathlib import Path
-from tempfile import mkstemp
+from tempfile import mkstemp, NamedTemporaryFile
 
 import click
 import configparser
@@ -198,16 +198,19 @@ def add(dry_run: bool, keepalive: bool, psk: bool, interface: str, ip_addr: str)
             ip_addr,
         ]
 
-        if psk:
-            command_args.extend(["preshared-key", psk])
-
         if keepalive:
             command_args.extend(["persistent-keepalive", "25"])
 
-        if not dry_run:
-            result = subprocess.run(command_args)
-        else:
-            result = subprocess.run(["echo", 'would be running:', *command_args])
+        with NamedTemporaryFile() as t_file:
+            if psk:
+                t_file.write(psk.encode())
+                t_file.flush()
+                command_args.extend(["preshared-key", t_file.name])
+
+            if not dry_run:
+                result = subprocess.run(command_args)
+            else:
+                result = subprocess.run(["echo", 'would be running:', *command_args])
         if result.returncode != 0:
             console.print("[dim i]Command failed: " + " ".join(command_args))
             console.print(f"[red]:x: Failed to add peer to {interface}")
@@ -245,6 +248,41 @@ def add(dry_run: bool, keepalive: bool, psk: bool, interface: str, ip_addr: str)
                 f.write(data)
             os.chmod(fn[1], 0o600)
             console.print(f"[green]:heavy_check_mark: Saved sample client config to {fn[1]}.")
+
+
+@peers.command()
+@click.option("--dry-run", "-d", is_flag=True, help="Prints what commands would be run instead of running them.")
+@click.argument("interface")
+@click.argument("public_key")
+def remove(dry_run: bool, interface: str, public_key: str):
+    """Removes a peer from an interface"""
+    if not os.access("/etc/wireguard", os.W_OK):
+        elevate()
+        if not os.access("/etc/wireguard", os.W_OK):
+            console.print("[red]:x: You do not have permissions to write to /etc/wireguard")
+            return
+
+    with console.status("Removing peer"):
+        command_args = [
+            getattr(main, "sudo", "/usr/bin/sudo"),
+            "wg",
+            "set",
+            interface,
+            "peer",
+            public_key,
+            "remove",
+        ]
+
+        if not dry_run:
+            result = subprocess.run(command_args)
+        else:
+            result = subprocess.run(["echo", 'would be running:', *command_args])
+    if result.returncode != 0:
+        console.print("[dim i]Command failed: " + " ".join(command_args))
+        console.print(f"[red]:x: Failed to remove peer from {interface}")
+        return
+    else:
+        console.print(f"[green]:heavy_check_mark: Successfully removed peer from {interface}")
 
 
 if __name__ == "__main__":
