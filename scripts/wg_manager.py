@@ -12,8 +12,9 @@ import subprocess
 import rich
 from rich.tree import Tree
 from rich.table import Table
+from elevate import elevate
 
-from .utils.wg_man import get_interface_stats, generate_tree
+from .utils.wg_man import get_interface_stats, generate_tree, ping_target_is_online
 
     # dev vs prod
 
@@ -79,6 +80,7 @@ def _list():
 
     files = list(_dir.glob("*.conf"))
     if not files:
+        elevate()
         console.print("[red]:x: No configuration files found in /etc/wireguard")
         if os.getuid() != 0 and not os.access(_dir, os.R_OK):
             console.print("[red]:x: [i]Hint: You may not have permissions to list files in /etc/wireguard")
@@ -90,18 +92,33 @@ def _list():
         config.read(file)
         configs.append(config)
 
-    table = Table(title="Peers")
-    table.add_column("Interface")
-    table.add_column("Public Key")
+    table = Table(
+        title="Peers",
+        leading=1
+    )
     table.add_column("IP Address")
+    table.add_column("Public Key")
+    table.add_column("IP Range")
+    table.add_column("Endpoint")
     table.add_column("Connected")
 
     for config in configs:
-        interface = config["Interface"]["Address"]
-        public_key = config["Peer"]["PublicKey"]
-        ip_address = config["Peer"]["AllowedIPs"]
-        connected = "Yes" if config["Peer"]["PersistentKeepalive"] == "25" else "No"
-        table.add_row(interface, public_key, ip_address, connected)
+        # noinspection PyTypeChecker
+        config = dict(config)
+        config.setdefault("Interface", {})
+        config.setdefault("Peer", {})
+        interface = config["Interface"].get("Address", "unknown")
+        public_key = config["Peer"].get("PublicKey", "unknown")
+        ip_address = config["Peer"].get("AllowedIPs", "unknown")
+        endpoint = config["Peer"].get("Endpoint", "unknown")
+        connected = ping_target_is_online(ip_address.split("/")[0])
+
+        _ips = ip_address.split(",")
+        if len(_ips) > 1:
+            ip_address = f"{_ips[0]} (+{len(_ips) - 1} more)"
+        table.add_row(
+            interface, public_key, ip_address, endpoint, {True: ":heavy_check_mark:", False: ":x:"}[connected]
+        )
 
     console.print(table)
 

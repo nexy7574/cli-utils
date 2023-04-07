@@ -5,7 +5,7 @@ import humanize
 from rich.tree import Tree
 
 
-__all__ = ("get_interface_stats", "generate_tree")
+__all__ = ("get_interface_stats", "generate_tree", "ping_target_is_online")
 
 
 def ping_target_is_online(target: str) -> bool:
