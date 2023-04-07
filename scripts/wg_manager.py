@@ -209,6 +209,7 @@ def add(dry_run: bool, keepalive: bool, psk: bool, interface: str, ip_addr: str)
         else:
             result = subprocess.run(["echo", 'would be running:', *command_args])
         if result.returncode != 0:
+            console.print("[dim i]Command failed: " + " ".join(command_args))
             console.print(f"[red]:x: Failed to add peer to {interface}")
             return
         else:
