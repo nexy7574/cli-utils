@@ -5,13 +5,38 @@ import humanize
 from rich.tree import Tree
 
 
-__all__ = ("get_interface_stats", "generate_tree", "ping_target_is_online")
+__all__ = (
+    "get_interface_stats",
+    "generate_tree",
+    "ping_target_is_online",
+    "generate_private_key",
+    "generate_public_key",
+    "generate_psk",
+)
 
 
 def ping_target_is_online(target: str) -> bool:
     """Checks if a ping target is online"""
     proc = subprocess.run(("ping", "-c", "1", target), capture_output=True, encoding="utf-8")
     return proc.returncode == 0
+
+
+def generate_psk() -> str:
+    """Generates a preshared key"""
+    proc = subprocess.run(("wg", "genpsk"), capture_output=True, encoding="utf-8")
+    return proc.stdout.strip()
+
+
+def generate_private_key() -> str:
+    """Generates a private key"""
+    proc = subprocess.run(("wg", "genkey"), capture_output=True, encoding="utf-8")
+    return proc.stdout.strip()
+
+
+def generate_public_key(private_key: str) -> str:
+    """Generates a public key from a private key"""
+    proc = subprocess.run(("wg", "pubkey"), input=private_key, capture_output=True, encoding="utf-8")
+    return proc.stdout.strip()
 
 
 def get_interface_stats(sudo: str, interface_name: str) -> dict:
