@@ -8,6 +8,12 @@ from rich.tree import Tree
 __all__ = ("get_interface_stats", "generate_tree")
 
 
+def ping_target_is_online(target: str) -> bool:
+    """Checks if a ping target is online"""
+    proc = subprocess.run(("ping", "-c", "1", target), capture_output=True, encoding="utf-8")
+    return proc.returncode == 0
+
+
 def get_interface_stats(sudo: str, interface_name: str) -> dict:
     """Gets an interface details as JSON"""
     data = {
