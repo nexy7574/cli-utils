@@ -183,6 +183,7 @@ def add(dry_run: bool, keepalive: bool, psk: bool, interface: str, ip_addr: str)
         return
 
     with console.status("Generating peer"):
+        server_pubkey = generate_public_key(config["Interface"]["PrivateKey"])
         private = generate_private_key()
         public = generate_public_key(private)
         psk = generate_psk() if psk else None
@@ -223,13 +224,18 @@ def add(dry_run: bool, keepalive: bool, psk: bool, interface: str, ip_addr: str)
             console.print(f"[green]:heavy_check_mark: Successfully added peer to {interface}")
             # Create a sample client config
             _client_config = configparser.ConfigParser(strict=False)
+            # find the right subnet and add its cidr
+            for ip_net in ip_nets:
+                if ip in ip_net:
+                    ip_addr += f"/{ip_net.prefixlen}"
+                    break
             _client_config["Interface"] = {
-                "Address": ip_addr + "/24",
+                "Address": ip_addr,
                 "PrivateKey": private,
                 "DNS": "94.140.14.14, 94.140.15.15"
             }
             _client_config["Peer"] = {
-                "PublicKey": public,
+                "PublicKey": server_pubkey,
                 "AllowedIPs": "0.0.0.0/0, ::/0",
                 "Endpoint": external_ip + ":" + config["Interface"].get("ListenPort", "51820")
             }
