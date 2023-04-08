@@ -2,7 +2,7 @@ from os import getenv
 from setuptools import setup
 from subprocess import run
 
-base_version = getenv("UTILS_BUILD_VERSION", "0.2.0a1")
+base_version = getenv("UTILS_BUILD_VERSION", "0.3.0a1")
 if getenv("UTILS_RELEASE", "0") == "1":
     version = base_version
 else:
