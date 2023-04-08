@@ -251,16 +251,32 @@ def main(
                         expand=True
                     ) as progress:
                         task = progress.add_task("Reserving space", filename=str(file), total=meta.content_size)
-                        for cs in range(0, meta.content_size, 4 * 1024 * 1024):
-                            progress.advance(task, _file.write(b"\0" * 4 * 1024 * 1024))
-                        final_block = round(meta.content_size - progress.tasks[task].completed)
-                        progress.advance(
-                            task,
-                            _file.write(b"\0" * final_block)
-                        )
-                        assert progress.tasks[task].completed == meta.content_size, "Wrong size (%d vs %d)" % (
-                            progress.tasks[task].completed, meta.content_size
-                        )
+                        bytes_remaining = meta.content_size
+                        while bytes_remaining > 0:
+                            chunk_size = min(bytes_remaining, chunk_size_bytes)
+                            try:
+                                progress.advance(task, _file.write(b"\0" * chunk_size))
+                            except OSError as e:
+                                if e.errno == 28:
+                                    console.print(f"{Emoji.WARNING} [red]Disk is full.")
+                                    sys.exit(1)
+                                else:
+                                    raise e
+                            bytes_remaining -= chunk_size
+
+                        if progress.tasks[task].completed != meta.content_size:
+                            written = progress.tasks[task].completed
+                            console.print(
+                                f"{Emoji.WARNING} [gold]Discrepancy between reserved space and actual size ("
+                                f"{written:,} bytes written, {meta.content_size:,} bytes expected)."
+                            )
+                            if written > meta.content_size:
+                                console.print(f"{Emoji.WARNING} [gold]Over-allocated. This should not be an issue.")
+                            else:
+                                console.print(
+                                    f"{Emoji.WARNING} [gold]Under-allocation detected. "
+                                    f"This may cause issues if you don't have enough free disk space."
+                                )
 
     with Progress(
         SpinnerColumn(random.choice(SPINNERS)),
