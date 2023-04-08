@@ -7,6 +7,7 @@ __all__ = (
     "CAPACITY_VALUES",
     "CAPACITY_REGEX_RAW",
     "convert_soft_data_value_to_hard_data_value",
+    "bytes_to_human"
 )
 
 CAPACITY_VALUES = {
@@ -45,3 +46,11 @@ def convert_soft_data_value_to_hard_data_value(value: str, return_in: str = "b")
     _unit = _unit.lower()
     value_in_bytes = _value * CAPACITY_VALUES[_unit]
     return value_in_bytes / CAPACITY_VALUES[return_in.lower()]
+
+
+def bytes_to_human(n: int) -> str:
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if n < 1024.0:
+            return f"{n:3.1f} {unit}"
+        n /= 1024.0
+    return f"{n:.1f} PB"

@@ -50,6 +50,7 @@ setup(
             "cf-ddns = scripts.cf_ddns:main",
             "file-gen = scripts.filegen:main",
             "filegen = scripts.filegen:main",
+            "download = scripts.download:main",
         ]
     },
 )

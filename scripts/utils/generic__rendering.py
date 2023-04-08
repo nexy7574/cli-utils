@@ -5,7 +5,15 @@ from rich.table import Table
 __builtin_console = get_console()
 
 
-__all__ = ("render_as_table",)
+__all__ = ("render_as_table", "Emoji")
+
+
+class Emoji:
+    """Emoji container."""
+    CHECK_MARK = "\N{white heavy check mark}"
+    CROSS = "\N{cross mark}"
+    WARNING = "\N{warning sign}"
+    INFO = "\N{information source}"
 
 
 def render_as_table(headers: list[str], values: list[list]) -> Table:
