@@ -17,7 +17,7 @@ CAPACITY_VALUES = {
     "t": 1024**4,
     # Who the hell has a terabyte or more of ram?
 }
-CAPACITY_REGEX_RAW = r"(\d+)\s*([bkmgtBKMGT])*b*"
+CAPACITY_REGEX_RAW = r"(\d+)\s*([bkmgtBKMGT])?b*"
 CAPACITY_REGEX = re.compile(CAPACITY_REGEX_RAW, re.IGNORECASE)
 
 
