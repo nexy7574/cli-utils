@@ -1,7 +1,9 @@
 import base64
 import os
 import random
+import shutil
 import sys
+import psutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Tuple, Literal
@@ -355,15 +357,41 @@ def main(
             )
 
     if _tf:
+        stat = file.stat()
         try:
+            if psutil.virtual_memory().available < stat.st_size:
+                console.print(f"{Emoji.WARNING} [gold]File is larger than available RAM.")
+                raise MemoryError
             _text = file.read_text()
-            console.print(_text, markup=False, no_wrap=True, crop=False)
+            console.print(f"{Emoji.INFO} [blue]File is text, writing to pager.[/]")
+            click.echo_via_pager(_text)
         except UnicodeDecodeError:
             _text = file.read_bytes()
             # echo base64 encoded file
-            console.print(base64.b64encode(_text).decode('utf-8'))
-            console.print(f"{Emoji.INFO} [blue]File is binary, base64 encoded.[/]")
-        _tf.close()
+            with console.status("Encoding file to base64", spinner=random.choice(SPINNERS)):
+                b64 = base64.b64encode(_text).decode('utf-8')
+            console.print(b64)
+            console.print(f"{Emoji.INFO} [blue]File is binary, displayed base64 encoded.[/]")
+        except MemoryError:
+            console.print(f"{Emoji.WARNING} [gold]File is too large to display.")
+            if os.access(Path.cwd(), os.W_OK):
+                save_dir = Path.cwd() / file.name
+            elif Path.home() / "Downloads" and os.access(Path.home(), os.W_OK):
+                save_dir = Path.home() / "Downloads" / file.name
+            elif os.access(Path.home(), os.W_OK):
+                save_dir = Path.home() / file.name
+            else:
+                console.log(f"{Emoji.CROSS} [bold red]Unable to find a suitable directory to save the file.")
+                save_dir = None
+            if save_dir:
+                with console.status(f"Copying temporary file to {save_dir.parent}", spinner=random.choice(SPINNERS)):
+                    shutil.copy2(_tf.name, Path.cwd() / file.name)
+                console.print(
+                    f"{Emoji.INFO} [blue]Temporary file [cyan]{file}[/cyan] is available at {save_dir}.[/]"
+                )
+        finally:
+            _tf.close()
+            file.unlink()
 
 
 if __name__ == '__main__':
