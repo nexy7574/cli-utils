@@ -370,7 +370,7 @@ def main(
             # echo base64 encoded file
             with console.status("Encoding file to base64", spinner=random.choice(SPINNERS)):
                 b64 = base64.b64encode(_text).decode('utf-8')
-            console.print(b64)
+            click.echo(b64, err=True)
             console.print(f"{Emoji.INFO} [blue]File is binary, displayed base64 encoded.[/]")
         except MemoryError:
             console.print(f"{Emoji.WARNING} [gold]File is too large to display.")
