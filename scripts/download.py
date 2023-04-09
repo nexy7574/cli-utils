@@ -291,7 +291,7 @@ def main(
                         task = progress.add_task("Reserving space", filename=str(file), total=meta.content_size)
                         bytes_remaining = meta.content_size
                         while bytes_remaining > 0:
-                            chunk_size = min(bytes_remaining, chunk_size_bytes)
+                            chunk_size = min(bytes_remaining, 1024 * 1024 * 4)
                             try:
                                 progress.advance(task, _file.write(os.urandom(chunk_size)))
                                 # Writing urandom should bypass disks' caches to some extent, opposed to zeros.
