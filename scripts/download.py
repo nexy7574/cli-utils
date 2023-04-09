@@ -391,8 +391,8 @@ def main(
                 )
         finally:
             _tf.close()
-            file.unlink()
-
+            # try:file.unlink()
+            # except:pass
 
 if __name__ == '__main__':
     main()
