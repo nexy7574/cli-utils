@@ -22,8 +22,25 @@ from rich.prompt import Confirm
 
 from .utils.generic__rendering import Emoji
 from .utils.generic__size import convert_soft_data_value_to_hard_data_value, bytes_to_human
+from . import __version__ as version
 
 SPINNERS = ("arc", "arrow3", "bouncingBall", "bouncingBar", "dots", "dots12", "earth", "pong", "line", "aesthetic")
+
+
+def user_agent(name: str = "default") -> str:
+    """Returns the default user agent"""
+    names = {
+        "default": "Mozilla/5.0 (compatible; cli-utils/{}, +https://github.com/EEKIM10/cli-utils)".format(version),
+        "firefox": "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0",
+        "chrome": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36",
+        "safari": "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_5_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15",
+        "edge": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36 Edg/92.0.902.84",
+        "opera": "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.10.289 Version/12.02",
+        "ie": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; Trident/7.0; rv:11.0) like Gecko",
+    }
+    if name.lower() in names:
+        return names[name.lower()]
+    return name
 
 
 class Meta:
@@ -127,6 +144,7 @@ def determine_filename_from_url(url: str) -> str:
     return parsed_url.path.split("/")[-1]
 
 @click.command()
+@click.option("--custom-user-agent", "--user-agent", "-U", type=str, default="default", help="Custom user agent to use.")
 @click.option("--disable-compression", "-D", is_flag=True, help="Disables gz/br/deflate compression.")
 @click.option("--reserve/--no-reserve", default=True, help="Reserves the file size before downloading.")
 @click.option("--timeout", "-T", type=int, default=60, help="Request timeout in seconds.")
@@ -140,6 +158,7 @@ def determine_filename_from_url(url: str) -> str:
 @click.option("--chunk-size", "-c", default="4M", help="The chunk size to download with.")
 @click.argument("url")
 def main(
+        custom_user_agent: str,
         disable_compression: bool,
         reserve: bool,
         timeout: int,
@@ -158,6 +177,8 @@ def main(
     By default, all downloads are saved to $HOME/Downloads.
     If that directory does not exist, the current working directory is used.
     You can, however, pass a directory or fully qualified path to --output instead.
+
+    User agent can either be a browser name (e.g. chrome, firefox, edge, ie, safari, opera, etc.), or a custom string.
 
     Note on disabling compression: Disabling compression will mean that the data is not decompressed before being
     written to disk. This can help downloading pre-compressed files, as remote servers will report the size of
@@ -204,7 +225,7 @@ def main(
     console.print(f"{Emoji.INFO} [blue]Downloading [cyan]{escape(url)}[/] to [cyan]{escape(str(file))}[/].")
     kwargs = {
         "headers": {
-            "User-Agent": "Mozilla/5.0 (compatible; cli-utils/{}, +https://github.com/EEKIM10/cli-utils)"
+            "User-Agent": user_agent(custom_user_agent)
         },
         "http2": h2,
         "follow_redirects": follow_redirects,
