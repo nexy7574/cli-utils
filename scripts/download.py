@@ -1,17 +1,25 @@
 import os
+import random
 import sys
+from pathlib import Path
 from typing import Tuple, Literal
+from urllib.parse import urlparse
 
-import rich
 import click
 import httpx
-import random
-import logging
-from urllib.parse import urlparse
-from pathlib import Path
+import rich
 from rich.markup import escape
+from rich.progress import (
+    Progress,
+    BarColumn,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+    DownloadColumn,
+    SpinnerColumn
+)
 from rich.prompt import Confirm
-from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn, TransferSpeedColumn, DownloadColumn, SpinnerColumn, track
+
 from .utils.generic__rendering import Emoji
 from .utils.generic__size import convert_soft_data_value_to_hard_data_value, bytes_to_human
 
@@ -260,6 +268,8 @@ def main(
                             except OSError as e:
                                 if e.errno == 28:
                                     console.print(f"{Emoji.WARNING} [red]Disk is full.")
+                                    _file.close()
+                                    file.unlink()
                                     sys.exit(1)
                                 else:
                                     raise e
