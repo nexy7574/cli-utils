@@ -346,9 +346,16 @@ def main(
                 file.unlink()
             console.print(f"{Emoji.CROSS} [bold red]HTTP Error[/] occurred while downloading [cyan]{escape(url)}[/].")
             console.print(f"Error: [red]{e!r}")
+            if remove_file_on_failure:
+                file.unlink()
+                if _tf:
+                    _tf.close()
+            sys.exit(1)
         except Exception:
             if remove_file_on_failure:
                 file.unlink()
+                if _tf:
+                    _tf.close()
             raise
         else:
             console.print(
