@@ -1,7 +1,9 @@
+import base64
 import os
 import random
 import sys
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Tuple, Literal
 from urllib.parse import urlparse
 
@@ -154,7 +156,7 @@ def determine_filename_from_url(url: str) -> str:
 @click.option("--ssl/--no-ssl", default=True, help="Toggles verifying SSL certs.")
 @click.option("--h2/--no-h2", default=True, help="Use HTTP/2 if available.")
 @click.option("--proxy-uri", "-p", type=str, help="Proxy URI to use. HTTP/SOCKS supported.", default=None)
-@click.option("--output", "-o", type=click.Path(), default="auto", help="Output file or directory.")
+@click.option("--output", "-o", type=click.Path(allow_dash=True), default="auto", help="Output file or directory.")
 @click.option("--chunk-size", "-c", default="4M", help="The chunk size to download with.")
 @click.argument("url")
 def main(
@@ -189,6 +191,7 @@ def main(
     Warning on disabling SSL verification: Disabling SSL verification is a bad idea. It is recommended to only do this
     if you know what you are doing. This option is provided for convenience, not for security.
     """
+    _tf = None
     if timeout != 60 and disable_timeout:
         raise click.UsageError("You cannot specify both --timeout and --disable-timeout.")
 
@@ -206,6 +209,10 @@ def main(
         else:
             directory = Path.cwd()
         file = directory / determine_filename_from_url(url)
+    elif output == "-":
+        _tf = NamedTemporaryFile(mode="wb")
+        file = Path(_tf.name)
+        console.print("Downloading to temporary file [cyan]{}[/] before writing to stdout.".format(file))
     else:
         file = Path(output)
         if file.is_dir():
@@ -346,6 +353,17 @@ def main(
                 f"[green]\N{white heavy check mark} Downloaded [cyan]{escape(url)}[/cyan] to "
                 f"[cyan]{escape(str(file))}[/cyan]."
             )
+
+    if _tf:
+        try:
+            _text = file.read_text()
+            console.print(_text, markup=False, no_wrap=True, crop=False)
+        except UnicodeDecodeError:
+            _text = file.read_bytes()
+            # echo base64 encoded file
+            console.print(base64.b64encode(_text).decode('utf-8'))
+            console.print(f"{Emoji.INFO} [blue]File is binary, base64 encoded.[/]")
+        _tf.close()
 
 
 if __name__ == '__main__':
