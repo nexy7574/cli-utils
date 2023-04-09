@@ -149,6 +149,7 @@ def determine_filename_from_url(url: str) -> str:
 
 @click.command()
 @click.option("--custom-user-agent", "--user-agent", "-U", type=str, default="default", help="Custom user agent to use.")
+@click.option("--keep-temp-files", "-K", is_flag=True, help="Keeps any temporary files after download.")
 @click.option("--disable-compression", "-D", is_flag=True, help="Disables gz/br/deflate compression.")
 @click.option("--reserve/--no-reserve", default=True, help="Reserves the file size before downloading.")
 @click.option("--timeout", "-T", type=int, default=60, help="Request timeout in seconds.")
@@ -163,6 +164,7 @@ def determine_filename_from_url(url: str) -> str:
 @click.argument("url")
 def main(
         custom_user_agent: str,
+        keep_temp_files: bool,
         disable_compression: bool,
         reserve: bool,
         timeout: int,
@@ -212,9 +214,9 @@ def main(
             directory = Path.cwd()
         file = directory / determine_filename_from_url(url)
     elif output == "-":
-        _tf = NamedTemporaryFile(mode="wb")
+        _tf = NamedTemporaryFile(mode="wb", delete=not keep_temp_files)
         file = Path(_tf.name)
-        console.print("Downloading to temporary file [cyan]{}[/] before writing to stdout.".format(file))
+        console.print("[dim i]Downloading to temporary file [cyan]{}[/] before writing to stdout.".format(file))
     else:
         file = Path(output)
         if file.is_dir():
