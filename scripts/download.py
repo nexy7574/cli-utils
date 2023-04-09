@@ -6,7 +6,7 @@ import sys
 import psutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Tuple, Literal
+from typing import Tuple, Literal, Dict
 from urllib.parse import urlparse
 
 import click
@@ -36,9 +36,12 @@ def user_agent(name: str = "default") -> str:
     names = {
         "default": "Mozilla/5.0 (compatible; cli-utils/{}, +https://github.com/EEKIM10/cli-utils)".format(version),
         "firefox": "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0",
-        "chrome": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36",
-        "safari": "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_5_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15",
-        "edge": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36 Edg/92.0.902.84",
+        "chrome": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/92.0.4515.159 Safari/537.36",
+        "safari": "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_5_2) AppleWebKit/605.1.15 (KHTML, like Gecko) "
+                  "Version/14.1.2 Safari/605.1.15",
+        "edge": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/92.0.4515.159 Safari/537.36 Edg/92.0.902.84",
         "opera": "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.10.289 Version/12.02",
         "ie": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; Trident/7.0; rv:11.0) like Gecko",
     }
@@ -46,6 +49,13 @@ def user_agent(name: str = "default") -> str:
         return names[name.lower()]
     return name
 
+
+def log_debug(message: str, console: rich.console.Console) -> None:
+    """Logs a debug message."""
+    context = click.get_current_context()
+    if context is not None:
+        if context.params["debug"]:
+            console.print(f"[dim i]Debug[/]: {message}")
 
 class Meta:
     """Meta container to use for HTTP related functions."""
@@ -56,11 +66,39 @@ class Meta:
         if not compression:
             self.session.headers["Accept-Encoding"] = "identity;q=0.9, *;q=0.1"
         self.content_size = 0
+        self._response: Dict[str, None | int | Dict[str, str]] = {
+            "status": None,
+            "headers": None
+        }
 
-    def detect_content_size(self, url: str) -> int:
+    @staticmethod
+    def params(step: str) -> Dict[str, str] | None:
+        """Returns debug params if debugging is enabled."""
+        context = click.get_current_context()
+        if context is not None:
+            if context.params["debug"]:
+                return {"x-step": step}
+        return
+
+    def detect_content_size(self, url: str, method: str = "HEAD") -> int:
         """Tries to detect the size of the target download.
         If no result can be found, returns 0."""
-        with self.session.stream("GET", url) as response:  # HEAD might not be supported.
+        # check cache first
+        if self.content_size:
+            return self.content_size
+        if self._response["status"] is not None and self._response["headers"] is not None:
+            if self._response["headers"].get("content-length"):
+                return int(self._response["headers"]["content-length"])
+
+        with self.session.stream(
+                method,
+                url,
+                params=self.params("detect-content-size")
+        ) as response:
+            if response.status_code == 405 and method == "HEAD":
+                return self.detect_content_size(url, "GET")
+            self._response["status"] = response.status_code
+            self._response["headers"] = response.headers
             if response.status_code in range(200, 300):
                 header = response.headers.get("content-length")
                 if header:
@@ -80,7 +118,7 @@ class Meta:
                 )
                 return 0
 
-    def check_for_basic_authentication(self, url: str) -> Tuple[str, str] | None | Literal[False]:
+    def check_for_basic_authentication(self, url: str, method: str) -> Tuple[str, str] | None | Literal[False]:
         """Checks if the URL requires basic authentication.
 
         If the URL responds with 401 and has www-authenticate with basic, the function will pause and ask for a username
@@ -89,8 +127,14 @@ class Meta:
         If authentication is required but is not Basic, or not found, RuntimeError is raised.
         If 403 is returned, it is assumed authentication cannot continue.
         Any status code other than 401 or 403 is treated as okay and unauthenticated."""
-        # Send a preliminary GET request to check if the URL requires authentication.
-        with self.session.stream("GET", url) as response:
+        with self.session.stream(
+                method,
+                url,
+                params=self.params("check-for-basic-authentication"),
+        ) as response:
+            assert response.status_code != 405 and method == "HEAD", "HEAD is not supported."
+            self._response["status"] = response.status_code
+            self._response["headers"] = response.headers
             if response.status_code == 401:
                 header = response.headers.get("www-authenticate")
                 if not header:
@@ -117,27 +161,32 @@ class Meta:
     def set_auth_if_needed(self, url: str):
         """Sets the authentication for the session if needed."""
         try:
-            auth = self.check_for_basic_authentication(url)
+            auth = self.check_for_basic_authentication(url, "HEAD")
+        except AssertionError:
+            auth = self.check_for_basic_authentication(url, "GET")
         except RuntimeError as e:
             self.console.print(
                 f"{Emoji.WARNING} Unable to verify authentication requirement: [red]{escape(str(e))}[/red]"
             )
-        else:
-            if auth and isinstance(auth, tuple):
-                self.session.auth = auth
+            return
+        if auth and isinstance(auth, tuple):
+            self.session.auth = auth
 
     def download(self, url: str, file: Path, chunk_size: int):
         """Actual downloading logic.
 
         This function is a generator that yields the amount of bytes downloaded.
         """
-        with self.session.stream("GET", url) as response:
+        with self.session.stream("GET", url, params=self.params("download")) as response:
             response: httpx.Response
             response.raise_for_status()
+            self._response["status"] = response.status_code
+            self._response["headers"] = response.headers
             with file.open("wb") as file:
                 function = response.iter_bytes if self.compression else response.iter_raw
                 # noinspection PyArgumentList
-                for chunk in function(chunk_size=chunk_size):
+                for n, chunk in enumerate(function(chunk_size=chunk_size)):
+                    log_debug("[gray]Chunk #{:,}: {}".format(n, bytes_to_human(len(chunk))), self.console)
                     file.write(chunk)
                     yield len(chunk)
 
@@ -161,6 +210,7 @@ def determine_filename_from_url(url: str) -> str:
 @click.option("--proxy-uri", "-p", type=str, help="Proxy URI to use. HTTP/SOCKS supported.", default=None)
 @click.option("--output", "-o", type=click.Path(allow_dash=True), default="auto", help="Output file or directory.")
 @click.option("--chunk-size", "-c", default="4M", help="The chunk size to download with.")
+@click.option("--debug", is_flag=True, help="Enables debug mode.")
 @click.argument("url")
 def main(
         custom_user_agent: str,
@@ -176,6 +226,7 @@ def main(
         output: str,
         proxy_uri: str | None,
         chunk_size: str,
+        debug: bool,
         url: str
 ):
     """Naive HTTP file downloader.
@@ -220,18 +271,18 @@ def main(
     else:
         file = Path(output)
         if file.is_dir():
-            new_file = file / determine_filename_from_url(url)
-            if new_file.exists():
-                if not Confirm.ask(
-                        f"{Emoji.WARNING} File [cyan]{escape(str(new_file))}[/] already exists. Overwrite?",
-                        default=False
-                ):
-                    parts = new_file.name.split(".")
-                    parts.insert(-1, str(len(list(file.glob("*")))))
-                    new_file = new_file.with_name(".".join(parts))
-            file = new_file
+            file = file / determine_filename_from_url(url)
 
     file = file.resolve().absolute()
+    if file.exists():
+        new_file = file
+        if not Confirm.ask(
+                f"{Emoji.WARNING} File [cyan]{escape(str(new_file))}[/] already exists. Overwrite?",
+                default=False
+        ):
+            parts = new_file.name.split(".")
+            parts.insert(-1, str(len(list(file.glob("*")))))
+            file = new_file.with_name(".".join(parts))
 
     console.print(f"{Emoji.INFO} [blue]Downloading [cyan]{escape(url)}[/] to [cyan]{escape(str(file))}[/].")
     kwargs = {
