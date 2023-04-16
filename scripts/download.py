@@ -174,6 +174,8 @@ class Meta:
         try:
             auth = self.check_for_basic_authentication(url, "HEAD")
         except AssertionError:
+            if click.get_current_context().params["debug"]:
+                self.console.log("[yellow]:warning: Server does not support HEAD, falling back to streamed GET.")
             auth = self.check_for_basic_authentication(url, "GET")
         except RuntimeError as e:
             self.console.print(

@@ -31,10 +31,10 @@ else
     echo 'Pipx is already installed.'
 fi
 # shellcheck disable=SC2016
-printf 'Running `pipx ensurepath` (adding scripts to PATH)'
+printf 'Running `pipx ensurepath` (adding scripts to PATH)\n'
 pipx ensurepath
 # shellcheck disable=SC2016
-printf 'Installing cli-utils with `pipx install`'
+printf 'Installing cli-utils with `pipx install`\n'
 pipx install git+https://github.com/EEKIM10/cli-utils.git
 echo 'All done!'
 $SHELL
