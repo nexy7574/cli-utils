@@ -4,7 +4,6 @@ import sys
 import typing
 from functools import partial
 
-import rich
 from rich import get_console
 from rich.progress import (
     Progress,

@@ -14,7 +14,7 @@ from rich.progress import (
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
-from scripts.utils.generic__size import convert_soft_data_value_to_hard_data_value
+from .utils.generic__size import convert_soft_data_value_to_hard_data_value
 
 
 @click.command()

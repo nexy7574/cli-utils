@@ -22,8 +22,6 @@ from elevate import elevate
 
 from .utils.wg_man import get_interface_stats, generate_tree, generate_private_key, generate_public_key, generate_psk
 
-    # dev vs prod
-
 console = rich.get_console()
 
 

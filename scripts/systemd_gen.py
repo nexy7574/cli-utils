@@ -11,7 +11,7 @@ from elevate import elevate
 from rich import get_console
 from rich.prompt import Prompt, IntPrompt, Confirm
 from rich.syntax import Syntax
-from scripts.utils.generic__size import convert_soft_data_value_to_hard_data_value
+from .utils.generic__size import convert_soft_data_value_to_hard_data_value
 
 if os.name == "nt":
     print("This script is not supported on Windows.", file=sys.stderr)

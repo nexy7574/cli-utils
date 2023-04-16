@@ -74,6 +74,7 @@ class Meta:
         self.console = console
         self.compression = compression
         if not compression:
+            # 'Identity' disables compression. Fall back to accepting compressed files.
             self.session.headers["Accept-Encoding"] = "identity;q=0.9, *;q=0.1"
         self.content_size = 0
         self._response: Dict[str, None | int | Dict[str, str]] = {

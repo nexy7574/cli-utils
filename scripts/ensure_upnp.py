@@ -9,7 +9,7 @@ from rich import get_console
 from rich.prompt import IntPrompt, Prompt, Confirm
 from rich.progress import track
 from pathlib import Path
-from scripts.utils import ensure_upnp_utils as utils
+from .utils import ensure_upnp_utils as utils
 
 
 CONFIG_FILE = Path.home() / ".config" / "cli-utils" / "ensure_upnp.json"

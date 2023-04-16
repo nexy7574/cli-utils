@@ -46,6 +46,8 @@ either add `/home/<user>/.local/bin` to `/root/.profile`, or specify the full pa
 
 Scripts now attempt to automatically elevate their privileges if they need it - note that this may require a password
 prompt, which *may* break the output.
+Bear in mind that, if you do not add the scripts to root's PATH, the automatic elevation will fail
+(since [elevate](https://pypi.org/projects/elevate) spawns the command again in a fresh shell)
 
 ## What each tool is
 
@@ -68,6 +70,17 @@ If a script requires a newer python version, such will be stated.
 
 If a script does not work with your python version (e.g. a SyntaxError is raised at runtime), please upgrade your python version.
 You can also open an issue to ask me to update the minimum python version, or open a PR to do it yourself.
+
+## Configuration
+
+All configuration files are stored in `$HOME/.config/cli-utils`, even on Windows.
+
+You should not need to edit these files as usually they're controlled by scripts.
+
+## Cache?
+
+Any caches are stored in `$HOME/.cache/cli-utils`, though caches aren't frequently used.
+More-often than not, any "cache" files are stored in /tmp (or an equivalent temporary directory).
 
 ## Contributing
 

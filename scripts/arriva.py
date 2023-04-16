@@ -20,7 +20,6 @@ import requests
 import click
 from bs4 import BeautifulSoup
 from urllib.parse import urlsplit, parse_qs
-import textwrap
 import time
 from rich import get_console
 from rich.prompt import Confirm, Prompt

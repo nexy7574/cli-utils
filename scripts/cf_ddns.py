@@ -9,8 +9,8 @@ from rich import get_console
 from rich.prompt import Confirm
 from rich.progress import track
 from rich.prompt import IntPrompt
-from scripts.utils.generic__shell import config_dir
-from scripts.utils.generic__rendering import render_as_table
+from .utils.generic__shell import config_dir
+from .utils.generic__rendering import render_as_table
 
 
 class ZoneRecord(dict):

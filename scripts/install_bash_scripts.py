@@ -7,7 +7,7 @@ from pathlib import Path
 from glob import glob
 from shutil import copy, move
 
-from scripts.utils.generic__shell import command_exists, temp_dir, stderr, home
+from .utils.generic__shell import command_exists, temp_dir, stderr, home
 
 
 def main():
