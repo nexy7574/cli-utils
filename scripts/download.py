@@ -175,7 +175,7 @@ class Meta:
             auth = self.check_for_basic_authentication(url, "HEAD")
         except AssertionError:
             if click.get_current_context().params["debug"]:
-                self.console.log("[yellow]:warning: Server does not support HEAD, falling back to streamed GET.")
+                self.console.log(f"[yellow]{Emoji.WARNING} Server does not support HEAD, falling back to streamed GET.")
             auth = self.check_for_basic_authentication(url, "GET")
         except RuntimeError as e:
             self.console.print(
@@ -300,6 +300,7 @@ def main(
             parts = new_file.name.split(".")
             parts.insert(-1, str(len(list(file.glob("*")))))
             file = new_file.with_name(".".join(parts))
+            console.print(f"{Emoji.INFO} Saved to enumerated file name {escape(file.name)!r}.")
 
     console.print(f"{Emoji.INFO} [blue]Downloading [cyan]{escape(url)}[/] to [cyan]{escape(str(file))}[/].")
     kwargs = {
