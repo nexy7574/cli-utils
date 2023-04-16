@@ -300,6 +300,7 @@ def main(
             parts = new_file.name.split(".")
             parts.insert(-1, str(len(list(file.glob("*")))))
             file = new_file.with_name(".".join(parts))
+            console.print(f"{Emoji.INFO} Saved to enumerated file name {escape(file.name)!r}[/].")
 
     console.print(f"{Emoji.INFO} [blue]Downloading [cyan]{escape(url)}[/] to [cyan]{escape(str(file))}[/].")
     kwargs = {
