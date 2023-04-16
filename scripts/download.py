@@ -31,6 +31,16 @@ from . import __version__ as version
 SPINNERS = ("arc", "arrow3", "bouncingBall", "bouncingBar", "dots", "dots12", "earth", "pong", "line", "aesthetic")
 
 
+def supported_download_protocol(proto: str) -> bool:
+    """Checks if the protocol is supported."""
+    return proto.lower() in ("http", "https")
+
+
+def supported_proxy_protocol(proto: str) -> bool:
+    """Checks if the proxy protocol is supported."""
+    return proto.lower() in ("http", "https", "socks4", "socks5")
+
+
 def user_agent(name: str = "default") -> str:
     """Returns the default user agent"""
     names = {
@@ -257,6 +267,10 @@ def main(
         sys.exit(1)
 
     console = rich.get_console()
+    _parsed = urlparse(url)
+    if not supported_download_protocol(_parsed.scheme):
+        raise click.UsageError(f"Unsupported protocol in URL: {_parsed.scheme!r} (supported: http/s)")
+
     remove_file_on_failure = False
     if output == "auto":
         if (Path.home() / "Downloads").exists():
@@ -296,6 +310,9 @@ def main(
         "timeout": httpx.Timeout(None if disable_timeout else timeout),
     }
     if proxy_uri:
+        _parsed = urlparse(proxy_uri)
+        if not supported_proxy_protocol(_parsed.scheme):
+            raise click.UsageError(f"Unsupported proxy protocol: {_parsed.scheme!r} (supported: http/s, socks4/5)")
         kwargs["proxies"] = proxy_uri
     session = httpx.Client(
         **kwargs
