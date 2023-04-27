@@ -3,6 +3,8 @@ import os
 import random
 import shutil
 import sys
+import time
+
 import psutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -108,6 +110,7 @@ class Meta:
                 params=self.params("detect-content-size")
         ) as response:
             if response.status_code == 405 and method == "HEAD":
+                log_debug("(HEAD method not allowed, trying GET", self.console)
                 return self.detect_content_size(url, "GET")
             self._response["status"] = response.status_code
             self._response["headers"] = response.headers
@@ -187,16 +190,18 @@ class Meta:
         if auth and isinstance(auth, tuple):
             self.session.auth = auth
 
-    def download(self, url: str, file: Path, chunk_size: int):
+    def download(self, url: str, file: Path, chunk_size: int, rate_limit: int):
         """Actual downloading logic.
 
         This function is a generator that yields the amount of bytes downloaded.
         """
+        last_chunk_unchoked = 0
         with self.session.stream("GET", url, params=self.params("download")) as response:
             response: httpx.Response
             response.raise_for_status()
             self._response["status"] = response.status_code
             self._response["headers"] = response.headers
+            log_debug(f"[gray]Response headers:\n{response.headers}", self.console)
             with file.open("wb") as file:
                 function = response.iter_bytes if self.compression else response.iter_raw
                 # noinspection PyArgumentList
@@ -204,6 +209,19 @@ class Meta:
                     log_debug("[gray]Chunk #{:,}: {}".format(n, bytes_to_human(len(chunk))), self.console)
                     file.write(chunk)
                     yield len(chunk)
+                    last_chunk_unchoked += len(chunk)
+
+                    if rate_limit:
+                        if last_chunk_unchoked >= rate_limit:
+                            log_debug(f"[gray]{last_chunk_unchoked} vs {rate_limit}, waiting 1 second.", self.console)
+                            time.sleep(.5)
+                            last_chunk_unchoked = 0
+                        elif last_chunk_unchoked + chunk_size >= rate_limit:
+                            log_debug(
+                                f"{last_chunk_unchoked}+{chunk_size} vs {rate_limit}, waiting .5 seconds.",
+                                self.console
+                            )
+                            time.sleep(0.5)
 
 
 def determine_filename_from_url(url: str) -> str:
@@ -227,6 +245,7 @@ def determine_filename_from_url(url: str) -> str:
 @click.option("--output", "-o", type=click.Path(allow_dash=True), default="auto", help="Output file or directory.")
 @click.option("--chunk-size", "-c", default="4M", help="The chunk size to download with.")
 @click.option("--debug", is_flag=True, help="Enables debug mode.")
+@click.option("--rate-limit", "-r", type=str, default="0", help="Rate limit in bytes per second. 0 for unlimited.")
 @click.argument("url")
 def main(
         custom_user_agent: str,
@@ -243,6 +262,7 @@ def main(
         proxy_uri: str | None,
         chunk_size: str,
         debug: bool,
+        rate_limit: str,
         url: str
 ):
     """Naive HTTP file downloader.
@@ -416,7 +436,8 @@ def main(
         fn = str(file) if len(file.parents) <= 4 else file.name
         task_id = progress.add_task("download", filename=fn, total=meta.content_size or None)
         try:
-            for chunk in meta.download(url, file, chunk_size_bytes):
+            rl = round(convert_soft_data_value_to_hard_data_value(rate_limit))
+            for chunk in meta.download(url, file, chunk_size_bytes, rl):
                 progress.update(task_id, advance=chunk)
         except httpx.HTTPError as e:
             if remove_file_on_failure:
