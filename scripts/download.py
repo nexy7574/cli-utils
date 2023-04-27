@@ -67,6 +67,7 @@ def log_debug(message: str, console: rich.console.Console) -> None:
         if context.params["debug"]:
             console.print(f"[dim i]Debug[/]: {message}")
 
+
 class Meta:
     """Meta container to use for HTTP related functions."""
     def __init__(self, session: httpx.Client, console: rich.console.Console, compression: bool):
@@ -143,7 +144,8 @@ class Meta:
                 url,
                 params=self.params("check-for-basic-authentication"),
         ) as response:
-            assert response.status_code != 405 and method == "HEAD", "HEAD is not supported."
+            if response.status_code == 405:
+                assert method == "HEAD", "HEAD is not supported."
             self._response["status"] = response.status_code
             self._response["headers"] = response.headers
             if response.status_code == 401:
@@ -151,8 +153,8 @@ class Meta:
                 if not header:
                     raise RuntimeError("Server responded with 401 but did not provide a www-authenticate header.")
                 if header.lower().startswith("basic"):
-                    self.console.print(Emoji.WARNING+ "This URL requires basic authentication.")
-                    self.console.print(Emoji.INFO+ "Please enter your username and password below.")
+                    self.console.print(Emoji.WARNING + "This URL requires basic authentication.")
+                    self.console.print(Emoji.INFO + "Please enter your username and password below.")
                     username = self.console.input("Username: ")
                     password = self.console.input("Password (will not echo): ", password=True)
                     if not username or not password:
@@ -208,6 +210,7 @@ def determine_filename_from_url(url: str) -> str:
     """Determine the filename from a URL, returning a filesystem safe file name."""
     parsed_url = urlparse(url)
     return parsed_url.path.split("/")[-1]
+
 
 @click.command()
 @click.option("--custom-user-agent", "--user-agent", "-U", type=str, default="default", help="Custom user agent to use.")
@@ -474,6 +477,7 @@ def main(
             _tf.close()
             # try:file.unlink()
             # except:pass
+
 
 if __name__ == '__main__':
     main()
