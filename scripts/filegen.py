@@ -45,6 +45,10 @@ def main(size: str, output: str, block_size: int, source: Literal["urandom", "ze
         else:
             block_size = loc.parent.stat().st_blksize
         console.log(f"[i dim]Using block size of {block_size:,} bytes[/i dim]")
+    if Path(output).exists():
+        if not os.access(output, os.W_OK):
+            console.log(f"[red]Cannot write to {output!r}[/red]")
+            return
 
     columns = list(Progress.get_default_columns())
     columns.insert(0, SpinnerColumn("bouncingBar"))
