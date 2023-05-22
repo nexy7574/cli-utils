@@ -26,7 +26,7 @@ from .utils.generic__size import convert_soft_data_value_to_hard_data_value
 @click.option("--sync", is_flag=True, help="Clears buffer on each block write.")
 @click.option("--verbose", "-V", is_flag=True, help="Prints more information.")
 @click.argument("output", type=click.Path(dir_okay=False))
-def main(size: str, output: str, block_size: int, source: Literal["urandom", "zero"], sync: bool, verbose: bool):
+def main(size: str, output: str, block_size: str, source: Literal["urandom", "zero"], sync: bool, verbose: bool):
     """Generates a file of x size."""
     console = get_console()
 
@@ -38,13 +38,15 @@ def main(size: str, output: str, block_size: int, source: Literal["urandom", "ze
         print(e)
         return
 
-    if block_size == 0:
+    if block_size == "0":
         loc = Path(output)
         if loc.exists():
-            block_size = loc.stat().st_blksize
+            block_size: int = loc.stat().st_blksize
         else:
-            block_size = loc.parent.stat().st_blksize
+            block_size: int = loc.parent.stat().st_blksize
         console.log(f"[i dim]Using block size of {block_size:,} bytes[/i dim]")
+    else:
+        block_size: int = round(convert_soft_data_value_to_hard_data_value(block_size, "b"))
     if Path(output).exists():
         if not os.access(output, os.W_OK):
             console.log(f"[red]Cannot write to {output!r}[/red]")
