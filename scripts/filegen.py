@@ -19,7 +19,7 @@ from .utils.generic__size import convert_soft_data_value_to_hard_data_value
 
 @click.command()
 @click.option("--size", "-S", help="Size of the file to generate. Must end in B, KB, MB, GB, or TB.", required=True)
-@click.option("--block-size", "--bs", "-B", "-S", default=0, help="Block size to use for writing. 0 indicates auto.")
+@click.option("--block-size", "--bs", "-B", "-S", default="0", help="Block size to use for writing. 0 indicates auto.")
 @click.option(
     "--source", "--src", help="How to generate the file.", type=click.Choice(["urandom", "zero"]), default="zero"
 )
