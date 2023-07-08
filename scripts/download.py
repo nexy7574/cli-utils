@@ -243,7 +243,7 @@ def determine_filename_from_url(url: str) -> str:
 @click.option("--h2/--no-h2", default=True, help="Use HTTP/2 if available.")
 @click.option("--proxy-uri", "-p", type=str, help="Proxy URI to use. HTTP/SOCKS supported.", default=None)
 @click.option("--output", "-o", type=click.Path(allow_dash=True), default="auto", help="Output file or directory.")
-@click.option("--chunk-size", "-c", default="4M", help="The chunk size to download with.")
+@click.option("--chunk-size", "-c", default="4K", help="The chunk size to download with.")
 @click.option("--debug", is_flag=True, help="Enables debug mode.")
 @click.option("--rate-limit", "-r", type=str, default="0", help="Rate limit in bytes per second. 0 for unlimited.")
 @click.argument("url")
