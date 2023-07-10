@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "18e0bff3dee1143dfd66274d5cdcb5d165de86777cbb047ae74bf6c121d1fae2"
+            "sha256": "51dbeb5e4db00851b237e298d22eb8bece20c77805ea763d8a52843f1fcbda3a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,11 +18,11 @@
     "default": {
         "anyio": {
             "hashes": [
-                "sha256:275d9973793619a5374e1c89a4f4ad3f4b0a5510a2b5b939444bee8f4c4d37ce",
-                "sha256:eddca883c4175f14df8aedce21054bfca3adb70ffe76a9f607aef9d7fa2ea7f0"
+                "sha256:44a3c9aba0f5defa43261a8b3efb97891f2bd7d804e0e1f56419befa1adfc780",
+                "sha256:91dee416e570e92c64041bd18b900d1d6fa78dff7048769ce5ac5ddad004fbb5"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==3.7.0"
+            "version": "==3.7.1"
         },
         "beautifulsoup4": {
             "hashes": [
@@ -204,11 +204,11 @@
         },
         "humanize": {
             "hashes": [
-                "sha256:8830ebf2d65d0395c1bd4c79189ad71e023f277c2c7ae00f263124432e6f2ffa",
-                "sha256:efb2584565cc86b7ea87a977a15066de34cdedaf341b11c851cfcfd2b964779c"
+                "sha256:7ca0e43e870981fa684acb5b062deb307218193bca1a01f2b2676479df849b3a",
+                "sha256:df7c429c2d27372b249d3f26eb53b07b166b661326e0325793e0a988082e3889"
             ],
             "index": "pypi",
-            "version": "==4.4.0"
+            "version": "==4.7.0"
         },
         "hyperframe": {
             "hashes": [
@@ -347,11 +347,11 @@
         },
         "pluggy": {
             "hashes": [
-                "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159",
-                "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"
+                "sha256:c2fd55a7d7a3863cba1a013e4e2414658b1d07b6bc57b3919e0c63c9abb99849",
+                "sha256:d12f0c4b579b15f5e054301bb226ee85eeeba08ffec228092f8defbaa3a4c4b3"
             ],
-            "markers": "python_version >= '3.6'",
-            "version": "==1.0.0"
+            "markers": "python_version >= '3.7'",
+            "version": "==1.2.0"
         },
         "pytest": {
             "hashes": [
