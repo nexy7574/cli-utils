@@ -1,16 +1,16 @@
 import json
 import re
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 from urllib.parse import urlparse
 
-import httpx
 import click
+import httpx
 from rich import get_console
-from rich.prompt import Confirm
 from rich.progress import track
-from rich.prompt import IntPrompt
-from .utils.generic__shell import config_dir
+from rich.prompt import Confirm, IntPrompt
+
 from .utils.generic__rendering import render_as_table
+from .utils.generic__shell import config_dir
 
 
 class ZoneRecord(dict):

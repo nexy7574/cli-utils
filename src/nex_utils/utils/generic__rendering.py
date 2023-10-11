@@ -1,7 +1,6 @@
 from rich import get_console
 from rich.table import Table
 
-
 __builtin_console = get_console()
 
 
@@ -10,6 +9,7 @@ __all__ = ("render_as_table", "Emoji")
 
 class Emoji:
     """Emoji container."""
+
     CHECK_MARK = "\N{white heavy check mark}"
     CROSS = "\N{cross mark}"
     WARNING = "\N{warning sign}"

@@ -6,42 +6,45 @@
 # I also wrote this while hysterical and vibing way too hard to songs that gave me way too much energy
 # If this works reliably, I will start being religious
 import json
-import os
-import sys
-import pwd
 import logging
-from typing import Literal, Dict
-from scripts.utils.generic__size import convert_soft_data_value_to_hard_data_value, CAPACITY_REGEX_RAW
+import os
+import pwd
+import sys
+from typing import Dict, Literal
 
 from PyQt5.QtCore import (
-    Qt,
-    pyqtSignal,
-    QRunnable,
-    QThreadPool,
-    pyqtSlot,
+    Q_ARG,
     QMetaObject,
     QObject,
-    Q_ARG,
     QRegExp,
+    QRunnable,
+    Qt,
+    QThreadPool,
+    pyqtSignal,
+    pyqtSlot,
 )
 
 # WHAT IS HALF OF THIS???
-from PyQt5.QtGui import QIntValidator, QTextCursor, QRegExpValidator
+from PyQt5.QtGui import QIntValidator, QRegExpValidator, QTextCursor
 from PyQt5.QtWidgets import (
-    QTextEdit,
-    QWidget,
-    QGridLayout,
-    QPushButton,
-    QCheckBox,
-    QMessageBox,
-    QTextBrowser,
     QApplication,
-    QLabel,
+    QCheckBox,
     QComboBox,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
     QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTextBrowser,
+    QTextEdit,
     QTreeWidget,
     QTreeWidgetItem,
-    QGroupBox,
+    QWidget,
+)
+from scripts.utils.generic__size import (
+    CAPACITY_REGEX_RAW,
+    convert_soft_data_value_to_hard_data_value,
 )
 
 # Why don't I just `import *`? Because I'm f*cking insane apparently.
@@ -285,7 +288,7 @@ class FirstQuestions(QWidget):
             f"| RAM Limiting enabled: "
             f"{self.resource_limit_sub_widget.enable_ram_limiting_box.checkState() == Qt.Checked}",
             f"| | parsed data: {self.resource_limit_sub_widget.ram_resource_sub.get_machine_values()!r}",
-            f"Exec: {self.exec_path_input.text()!r}"
+            f"Exec: {self.exec_path_input.text()!r}",
         ]
         for line in lines:
             print(line)
@@ -375,7 +378,7 @@ class FirstQuestions(QWidget):
                 "cpu_limit": cpu_limit,
                 "ram_limiting": ram_limiting,
                 "ram_limit": ram_limit,
-            }
+            },
         }
 
     def _gen_unit_data(self):
@@ -388,9 +391,8 @@ class FirstQuestions(QWidget):
         service = {
             "Type": data["unit_type"],
             "RemainAfterExit": "no",
-
         }
-        install= {}
+        install = {}
 
 
 class WindowController(QObject):

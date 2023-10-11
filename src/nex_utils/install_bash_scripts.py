@@ -1,13 +1,13 @@
 # This script only exists because I can't include the bash scripts in the pipx package.
 # It's a bit hacky however it works.
 import os
-import sys
 import subprocess
-from pathlib import Path
+import sys
 from glob import glob
+from pathlib import Path
 from shutil import copy, move
 
-from .utils.generic__shell import command_exists, temp_dir, stderr, home
+from .utils.generic__shell import command_exists, home, stderr, temp_dir
 
 
 def main():

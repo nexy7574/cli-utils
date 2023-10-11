@@ -1,9 +1,9 @@
-import subprocess
-import ipaddress
 import datetime
+import ipaddress
+import subprocess
+
 import humanize
 from rich.tree import Tree
-
 
 __all__ = (
     "get_interface_stats",

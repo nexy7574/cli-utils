@@ -4,31 +4,33 @@ import random
 import shutil
 import sys
 import time
-
-import psutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Tuple, Literal, Dict
+from typing import Dict, Literal, Tuple
 from urllib.parse import urlparse
 
 import click
 import httpx
+import psutil
 import rich
 from rich.markup import escape
 from rich.progress import (
-    Progress,
     BarColumn,
+    DownloadColumn,
+    Progress,
+    SpinnerColumn,
     TextColumn,
     TimeRemainingColumn,
     TransferSpeedColumn,
-    DownloadColumn,
-    SpinnerColumn
 )
 from rich.prompt import Confirm
 
-from .utils.generic__rendering import Emoji
-from .utils.generic__size import convert_soft_data_value_to_hard_data_value, bytes_to_human
 from . import __version__ as version
+from .utils.generic__rendering import Emoji
+from .utils.generic__size import (
+    bytes_to_human,
+    convert_soft_data_value_to_hard_data_value,
+)
 
 SPINNERS = ("arc", "arrow3", "bouncingBall", "bouncingBar", "dots", "dots12", "earth", "pong", "line", "aesthetic")
 
@@ -49,11 +51,11 @@ def user_agent(name: str = "default") -> str:
         "default": "Mozilla/5.0 (compatible; cli-utils/{}, +https://github.com/EEKIM10/cli-utils)".format(version),
         "firefox": "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0",
         "chrome": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/92.0.4515.159 Safari/537.36",
+        "Chrome/92.0.4515.159 Safari/537.36",
         "safari": "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_5_2) AppleWebKit/605.1.15 (KHTML, like Gecko) "
-                  "Version/14.1.2 Safari/605.1.15",
+        "Version/14.1.2 Safari/605.1.15",
         "edge": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/92.0.4515.159 Safari/537.36 Edg/92.0.902.84",
+        "Chrome/92.0.4515.159 Safari/537.36 Edg/92.0.902.84",
         "opera": "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.10.289 Version/12.02",
         "ie": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; Trident/7.0; rv:11.0) like Gecko",
     }
@@ -72,6 +74,7 @@ def log_debug(message: str, console: rich.console.Console) -> None:
 
 class Meta:
     """Meta container to use for HTTP related functions."""
+
     def __init__(self, session: httpx.Client, console: rich.console.Console, compression: bool):
         self.session = session
         self.console = console
@@ -80,10 +83,7 @@ class Meta:
             # 'Identity' disables compression. Fall back to accepting compressed files.
             self.session.headers["Accept-Encoding"] = "identity;q=0.9, *;q=0.1"
         self.content_size = 0
-        self._response: Dict[str, None | int | Dict[str, str]] = {
-            "status": None,
-            "headers": None
-        }
+        self._response: Dict[str, None | int | Dict[str, str]] = {"status": None, "headers": None}
 
     @staticmethod
     def params(step: str) -> Dict[str, str] | None:
@@ -104,11 +104,7 @@ class Meta:
             if self._response["headers"].get("content-length"):
                 return int(self._response["headers"]["content-length"])
 
-        with self.session.stream(
-                method,
-                url,
-                params=self.params("detect-content-size")
-        ) as response:
+        with self.session.stream(method, url, params=self.params("detect-content-size")) as response:
             if response.status_code == 405 and method == "HEAD":
                 log_debug("(HEAD method not allowed, trying GET", self.console)
                 return self.detect_content_size(url, "GET")
@@ -143,9 +139,9 @@ class Meta:
         If 403 is returned, it is assumed authentication cannot continue.
         Any status code other than 401 or 403 is treated as okay and unauthenticated."""
         with self.session.stream(
-                method,
-                url,
-                params=self.params("check-for-basic-authentication"),
+            method,
+            url,
+            params=self.params("check-for-basic-authentication"),
         ) as response:
             if response.status_code == 405:
                 assert method == "HEAD", "HEAD is not supported."
@@ -214,12 +210,11 @@ class Meta:
                     if rate_limit:
                         if last_chunk_unchoked >= rate_limit:
                             log_debug(f"[gray]{last_chunk_unchoked} vs {rate_limit}, waiting 1 second.", self.console)
-                            time.sleep(.5)
+                            time.sleep(0.5)
                             last_chunk_unchoked = 0
                         elif last_chunk_unchoked + chunk_size >= rate_limit:
                             log_debug(
-                                f"{last_chunk_unchoked}+{chunk_size} vs {rate_limit}, waiting .5 seconds.",
-                                self.console
+                                f"{last_chunk_unchoked}+{chunk_size} vs {rate_limit}, waiting .5 seconds.", self.console
                             )
                             time.sleep(0.5)
 
@@ -231,7 +226,9 @@ def determine_filename_from_url(url: str) -> str:
 
 
 @click.command()
-@click.option("--custom-user-agent", "--user-agent", "-U", type=str, default="default", help="Custom user agent to use.")
+@click.option(
+    "--custom-user-agent", "--user-agent", "-U", type=str, default="default", help="Custom user agent to use."
+)
 @click.option("--keep-temp-files", "-K", is_flag=True, help="Keeps any temporary files after download.")
 @click.option("--disable-compression", "-D", is_flag=True, help="Disables gz/br/deflate compression.")
 @click.option("--reserve/--no-reserve", default=True, help="Reserves the file size before downloading.")
@@ -248,22 +245,22 @@ def determine_filename_from_url(url: str) -> str:
 @click.option("--rate-limit", "-r", type=str, default="0", help="Rate limit in bytes per second. 0 for unlimited.")
 @click.argument("url")
 def main(
-        custom_user_agent: str,
-        keep_temp_files: bool,
-        disable_compression: bool,
-        reserve: bool,
-        timeout: int,
-        disable_timeout: bool,
-        follow_redirects: bool,
-        max_redirects: int,
-        ssl: bool,
-        h2: bool,
-        output: str,
-        proxy_uri: str | None,
-        chunk_size: str,
-        debug: bool,
-        rate_limit: str,
-        url: str
+    custom_user_agent: str,
+    keep_temp_files: bool,
+    disable_compression: bool,
+    reserve: bool,
+    timeout: int,
+    disable_timeout: bool,
+    follow_redirects: bool,
+    max_redirects: int,
+    ssl: bool,
+    h2: bool,
+    output: str,
+    proxy_uri: str | None,
+    chunk_size: str,
+    debug: bool,
+    rate_limit: str,
+    url: str,
 ):
     """Naive HTTP file downloader.
 
@@ -317,8 +314,7 @@ def main(
     if file.exists():
         new_file = file
         if not Confirm.ask(
-                f"{Emoji.WARNING} File [cyan]{escape(str(new_file))}[/] already exists. Overwrite?",
-                default=False
+            f"{Emoji.WARNING} File [cyan]{escape(str(new_file))}[/] already exists. Overwrite?", default=False
         ):
             parts = new_file.name.split(".")
             parts.insert(-1, str(len(list(file.glob("*")))))
@@ -327,9 +323,7 @@ def main(
 
     console.print(f"{Emoji.INFO} [blue]Downloading [cyan]{escape(url)}[/] to [cyan]{escape(str(file))}[/].")
     kwargs = {
-        "headers": {
-            "User-Agent": user_agent(custom_user_agent)
-        },
+        "headers": {"User-Agent": user_agent(custom_user_agent)},
         "http2": h2,
         "follow_redirects": follow_redirects,
         "max_redirects": max_redirects,
@@ -341,9 +335,7 @@ def main(
         if not supported_proxy_protocol(_parsed.scheme):
             raise click.UsageError(f"Unsupported proxy protocol: {_parsed.scheme!r} (supported: http/s, socks4/5)")
         kwargs["proxies"] = proxy_uri
-    session = httpx.Client(
-        **kwargs
-    )
+    session = httpx.Client(**kwargs)
     meta = Meta(session, console, not disable_compression)
     with console.status("Checking for authentication requirements", spinner=random.choice(SPINNERS)) as status:
         meta.set_auth_if_needed(url)
@@ -353,9 +345,9 @@ def main(
         # if the content is >50 megabytes ask the user if they're sure they want to save
         if meta.content_size > 50 * 1024 * 1024:
             if not Confirm.ask(
-                    f"{Emoji.WARNING} File size is [bold red]{bytes_to_human(meta.content_size)}[/]. "
-                    f"Are you sure you want to download it?",
-                    default=False
+                f"{Emoji.WARNING} File size is [bold red]{bytes_to_human(meta.content_size)}[/]. "
+                f"Are you sure you want to download it?",
+                default=False,
             ):
                 sys.exit(0)
         if reserve:
@@ -383,7 +375,7 @@ def main(
                         DownloadColumn(binary_units=os.name != "nt"),
                         console=console,
                         transient=True,
-                        expand=True
+                        expand=True,
                     ) as progress:
                         task = progress.add_task("Reserving space", filename=str(file), total=meta.content_size)
                         bytes_remaining = meta.content_size
@@ -431,7 +423,7 @@ def main(
         DownloadColumn(binary_units=os.name != "nt"),
         console=console,
         transient=True,
-        expand=True
+        expand=True,
     ) as progress:
         fn = str(file) if len(file.parents) <= 4 else file.name
         task_id = progress.add_task("download", filename=fn, total=meta.content_size or None)
@@ -474,7 +466,7 @@ def main(
             _text = file.read_bytes()
             # echo base64 encoded file
             with console.status("Encoding file to base64", spinner=random.choice(SPINNERS)):
-                b64 = base64.b64encode(_text).decode('utf-8')
+                b64 = base64.b64encode(_text).decode("utf-8")
             click.echo(b64, err=True)
             console.print(f"{Emoji.INFO} [blue]File is binary, displayed base64 encoded.[/]")
         except MemoryError:
@@ -491,14 +483,12 @@ def main(
             if save_dir:
                 with console.status(f"Copying temporary file to {save_dir.parent}", spinner=random.choice(SPINNERS)):
                     shutil.copy2(_tf.name, Path.cwd() / file.name)
-                console.print(
-                    f"{Emoji.INFO} [blue]Temporary file [cyan]{file}[/cyan] is available at {save_dir}.[/]"
-                )
+                console.print(f"{Emoji.INFO} [blue]Temporary file [cyan]{file}[/cyan] is available at {save_dir}.[/]")
         finally:
             _tf.close()
             # try:file.unlink()
             # except:pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,19 +1,20 @@
-import time
-
-import click
 import os
+import time
 from pathlib import Path
 from typing import Literal
+
+import click
 from rich import get_console
 from rich.progress import (
+    FileSizeColumn,
     Progress,
     SpinnerColumn,
-    FileSizeColumn,
-    TotalFileSizeColumn,
-    TransferSpeedColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
+    TotalFileSizeColumn,
+    TransferSpeedColumn,
 )
+
 from .utils.generic__size import convert_soft_data_value_to_hard_data_value
 
 

@@ -1,10 +1,10 @@
 import io
 import math
-
-import click
 import os
 import pathlib
 import random
+
+import click
 from rich import get_console
 from rich.progress import track, wrap_file
 

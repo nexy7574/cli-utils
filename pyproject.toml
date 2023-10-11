@@ -1,6 +1,67 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "nexcli"
+description = "A collection of CLI utils that I (nexy7574) made & use"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.9,<3.12"
+license = { text = "GNU GPLv3" }
+authors = [
+    {name = "Nexus", email = "packages@nexy7574.co.uk"}
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+Source = "https://github.com/nexy7574/cli-utils"
+"Chat" = "https://matrix.to/#/@nex:nexy7574.co.uk"
+Funding = "https://ko-fi.com/nexy7574"
+
+
+[project.optional-dependencies]
+dev = [
+    'black',
+    'isort',
+    'build',
+    'pep440',
+    'pycodestyle',
+    'pytest',
+    'pytest-asyncio'
+]
+
+[project.scripts]
+ensure-upnp = "nex_utils.ensure_upnp:main"
+systemd-gen = "nex_utils.systemd_gen:main"
+upnp-revoker = "nex_utils.upnp_revoker:main"
+revoke-upnp = "nex_utils.upnp_revoker:main"
+visual-rm = "nex_utils.visual_rm:main"
+vrm = "nex_utils.visual_rm:main"
+hashgen = "nex_utils.hashgen:main"
+ruin = "nex_utils.ruin:main"
+arriva = "nex_utils.arriva:main"
+wg-manager = "nex_utils.wg_manager:main"
+cf-ddns = "nex_utils.cf_ddns:main"
+file-gen = "nex_utils.filegen:main"
+filegen = "nex_utils.filegen:main"
+download = "nex_utils.download:main"
+
+[tool.setuptools_scm]
+write_to = "src/nex_utils/__version__.py"
+
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
 
 [tool.black]
 line-length = 120
 target-version = ['py310', 'py311']
+
+[tool.isort]
+profile = "black"
+src_paths = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "src"
+]

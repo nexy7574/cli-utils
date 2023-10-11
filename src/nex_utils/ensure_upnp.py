@@ -1,16 +1,17 @@
-import socket
-import click
+import json
 import os
+import random
+import socket
 import subprocess
 import time
-import random
-import json
-from rich import get_console
-from rich.prompt import IntPrompt, Prompt, Confirm
-from rich.progress import track
 from pathlib import Path
-from .utils import ensure_upnp_utils as utils
 
+import click
+from rich import get_console
+from rich.progress import track
+from rich.prompt import Confirm, IntPrompt, Prompt
+
+from .utils import ensure_upnp_utils as utils
 
 CONFIG_FILE = Path.home() / ".config" / "cli-utils" / "ensure_upnp.json"
 CONSOLE = get_console()

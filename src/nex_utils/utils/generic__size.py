@@ -1,13 +1,12 @@
-import re
 import logging
-
+import re
 
 __all__ = (
     "CAPACITY_REGEX",
     "CAPACITY_VALUES",
     "CAPACITY_REGEX_RAW",
     "convert_soft_data_value_to_hard_data_value",
-    "bytes_to_human"
+    "bytes_to_human",
 )
 
 CAPACITY_VALUES = {

@@ -2,16 +2,16 @@
 import os
 import subprocess
 import sys
-from typing import Callable, Any
+import time
+from pathlib import Path
+from threading import Thread
+from typing import Any, Callable
 
 import click
-import time
-from threading import Thread
 from elevate import elevate
-from pathlib import Path
 from rich import get_console
-from rich.prompt import Prompt, Confirm
-from rich.progress import Progress, TextColumn, SpinnerColumn, MofNCompleteColumn
+from rich.progress import MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
+from rich.prompt import Confirm, Prompt
 
 
 # noinspection DuplicatedCode

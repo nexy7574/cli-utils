@@ -23,13 +23,13 @@ It appears that overboost always slows the fans at around 40c to that of the nor
 however does not exceed a lower than "balanced" RPM, even when the CPU is overheating. Balanced mode is the default,
 so not much to say there.
 """
-import elevate
 import os
-import sys
 import subprocess
+import sys
+from pathlib import Path
 
 import click
-from pathlib import Path
+import elevate
 
 __import__("warnings").warn(
     UserWarning(

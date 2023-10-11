@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-! You won't get much use out of this script unless you live in the UK, Yorksire area, and have the bus operator
+You won't get much use out of this script unless you live in the UK, and have the bus operator
 'Arriva' running through your area. This script is designed to automate the process of connecting to the Arriva
 free public Wi-Fi, and managing automatically authenticating ("agreeing" to the T&Cs) with the captive portal,
 and then automatically connecting my VPN (which you almost definitely don't have).
@@ -16,15 +16,16 @@ This will link /etc/wireguard/Laptop.conf to your own config file, and the scrip
 """
 import os
 import subprocess
-import requests
-import click
-from bs4 import BeautifulSoup
-from urllib.parse import urlsplit, parse_qs
 import time
-from rich import get_console
-from rich.prompt import Confirm, Prompt
 from functools import partial
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
+
+import click
+import requests
+from bs4 import BeautifulSoup
+from rich import get_console
+from rich.prompt import Confirm, Prompt
 
 console = get_console()
 # params = {
@@ -147,7 +148,7 @@ def check_arriva_wifi_connection(yes: bool = False):
             else:
                 return False
         else:
-            console.log("[yellow]:warning: You are not connected to a different network to the arriva network.")
+            console.log("[yellow]:warning: You are connected to a non-Arriva network.")
             if wifi_list.returncode == 0 and "arriva-wifi" in wifi_list.stdout:
                 if confirm("Do you want to try connecting to arriva wifi?", yes):
                     cycle_net_connection()

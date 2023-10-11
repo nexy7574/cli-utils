@@ -3,24 +3,29 @@
 Having wg-quick was way too difficult (actually having to type more than 3 words, ew), so I made a CLI that looks
 pretty!
 """
+import configparser
 import os
+import subprocess
 from io import StringIO
+from ipaddress import ip_address, ip_network
 from pathlib import Path
-from tempfile import mkstemp, NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkstemp
 
 import click
-import configparser
-import subprocess
-import rich
 import httpx
-from ipaddress import ip_address, ip_network
-from rich.tree import Tree
-from rich.table import Table
-from rich.syntax import Syntax
-
+import rich
 from elevate import elevate
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.tree import Tree
 
-from .utils.wg_man import get_interface_stats, generate_tree, generate_private_key, generate_public_key, generate_psk
+from .utils.wg_man import (
+    generate_private_key,
+    generate_psk,
+    generate_public_key,
+    generate_tree,
+    get_interface_stats,
+)
 
 console = rich.get_console()
 
@@ -92,16 +97,11 @@ def _list():
 
     configs = []
     for file in files:
-        config = configparser.ConfigParser(
-            strict=False
-        )
+        config = configparser.ConfigParser(strict=False)
         config.read(file)
         configs.append(config)
 
-    table = Table(
-        title="Peers",
-        leading=1
-    )
+    table = Table(title="Peers", leading=1)
     table.add_column("IP Address")
     table.add_column("Public Key")
     table.add_column("IP Range")
@@ -209,7 +209,7 @@ def add(dry_run: bool, keepalive: bool, psk: bool, interface: str, ip_addr: str)
             if not dry_run:
                 result = subprocess.run(command_args)
             else:
-                result = subprocess.run(["echo", 'would be running:', *command_args])
+                result = subprocess.run(["echo", "would be running:", *command_args])
         if result.returncode != 0:
             console.print("[dim i]Command failed: " + " ".join(command_args))
             console.print(f"[red]:x: Failed to add peer to {interface}")
@@ -230,12 +230,12 @@ def add(dry_run: bool, keepalive: bool, psk: bool, interface: str, ip_addr: str)
             _client_config["Interface"] = {
                 "Address": ip_addr,
                 "PrivateKey": private,
-                "DNS": "94.140.14.14, 94.140.15.15"
+                "DNS": "94.140.14.14, 94.140.15.15",
             }
             _client_config["Peer"] = {
                 "PublicKey": server_pubkey,
                 "AllowedIPs": "0.0.0.0/0, ::/0",
-                "Endpoint": external_ip + ":" + config["Interface"].get("ListenPort", "51820")
+                "Endpoint": external_ip + ":" + config["Interface"].get("ListenPort", "51820"),
             }
             if psk:
                 _client_config["Peer"]["PresharedKey"] = psk
@@ -280,7 +280,7 @@ def remove(dry_run: bool, interface: str, public_key: str):
         if not dry_run:
             result = subprocess.run(command_args)
         else:
-            result = subprocess.run(["echo", 'would be running:', *command_args])
+            result = subprocess.run(["echo", "would be running:", *command_args])
     if result.returncode != 0:
         console.print("[dim i]Command failed: " + " ".join(command_args))
         console.print(f"[red]:x: Failed to remove peer from {interface}")

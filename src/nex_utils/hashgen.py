@@ -1,35 +1,35 @@
 import copy
+import hashlib
+import os
+import signal
 import subprocess
 import sys
 import typing
 from functools import partial
-
-from rich import get_console
-from rich.progress import (
-    Progress,
-    SpinnerColumn,
-    FileSizeColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-    TaskID,
-    TotalFileSizeColumn,
-    TransferSpeedColumn,
-)
-from rich.table import Table
-from rich.prompt import Confirm
-import hashlib
-import click
-from click_aliases import ClickAliasedGroup
+from io import BytesIO
 from pathlib import Path
-from humanize import naturalsize
 
 # from multiprocessing import Pool
 from threading import Thread
-from io import BytesIO
 from typing import BinaryIO, List, Tuple
+
+import click
 import psutil
-import signal
-import os
+from click_aliases import ClickAliasedGroup
+from humanize import naturalsize
+from rich import get_console
+from rich.progress import (
+    FileSizeColumn,
+    Progress,
+    SpinnerColumn,
+    TaskID,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+    TotalFileSizeColumn,
+    TransferSpeedColumn,
+)
+from rich.prompt import Confirm
+from rich.table import Table
 
 if typing.TYPE_CHECKING:
     from rich.console import Console
@@ -220,9 +220,8 @@ def can_use_ram(
                 no_ram = True
 
     console.log(
-        "[dim i]Can use RAM: %s | no_ram: %s | multi-core: %s | switched to single: %s" % (
-            not no_ram, no_ram, multi_core, switched_to_single
-        )
+        "[dim i]Can use RAM: %s | no_ram: %s | multi-core: %s | switched to single: %s"
+        % (not no_ram, no_ram, multi_core, switched_to_single)
     )
     return no_ram, multi_core, switched_to_single
 
