@@ -4,10 +4,10 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
-import shlex
 import textwrap
 import typing
 from configparser import ConfigParser
@@ -16,10 +16,10 @@ import click
 import rich
 from rich.align import Align
 from rich.panel import Panel
+from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.syntax import Syntax
-from rich.prompt import Confirm, Prompt, IntPrompt
 
-from .utils.generic__size import convert_soft_data_value_to_hard_data_value, bytes_to_human
+from .utils.generic__size import convert_soft_data_value_to_hard_data_value
 
 console = rich.get_console()
 ABOUT = textwrap.dedent(
@@ -233,13 +233,13 @@ def main():
     targets_raw = list_available_targets(user_mode == "user")
     targets = [x["unit"] for x in targets_raw]
     for target in targets_raw:
-        colour = 'green' if target["load"] == "loaded" and target["active"] == "active" else 'red'
+        colour = "green" if target["load"] == "loaded" and target["active"] == "active" else "red"
         console.print(f"* {target['unit']}", style=colour)
     desired_target = Prompt.ask(
         "Please select a target (the thing that'll trigger your service to start)",
         choices=targets,
         default="multi-user.target" if "multi-user.target" in targets else "default.target",
-        show_choices=False
+        show_choices=False,
     )
     config["Install"]["WantedBy"] = desired_target
 
@@ -269,19 +269,17 @@ def main():
                 )
                 if v.startswith("!"):
                     match v.lower():
-                        case '!list':
+                        case "!list":
                             console.print("Available units to depend on:", ", ".join(av))
                             continue
-                        case '!show':
+                        case "!show":
                             console.print("Currently depending on:", ", ".join(wants))
                             continue
                         case _:
                             pass
                 if not v:
                     break
-                if v not in av and not Confirm.ask(
-                    f"[yellow]:warning: {v!r} was not found. Add it anyway?"
-                ):
+                if v not in av and not Confirm.ask(f"[yellow]:warning: {v!r} was not found. Add it anyway?"):
                     continue
                 wants.append(v)
             except KeyboardInterrupt:
@@ -300,11 +298,14 @@ def main():
     config["Service"]["ExecStart"] = exec_start
 
     if Confirm.ask("Do you want your services to be restart if it exits?"):
-        if Prompt.ask(
+        if (
+            Prompt.ask(
                 "Do you want the service to *always* restart, or only when it exits abnormally (with an exit code other"
                 " than 0)?",
                 choices=["always", "abnormal"],
-        ) == "abnormal":
+            )
+            == "abnormal"
+        ):
             config["Service"]["Restart"] = "on-failure"
         else:
             config["Service"]["Restart"] = "always"
@@ -317,8 +318,7 @@ def main():
             config["Service"]["StartLimitBurst"] = str(IntPrompt.ask("How many times should it restart?", default=10))
         if Confirm.ask("Do you want to ratelimit and space-out the restarts?"):
             config["Service"]["StartLimitInterval"] = Prompt.ask(
-                "How long should systemd wait between restarts? (e.g. 1min, 1h, 5s)",
-                default="5s"
+                "How long should systemd wait between restarts? (e.g. 1min, 1h, 5s)", default="5s"
             )
 
     if Confirm.ask("Do you want to limit how much CPU this service can use?", default=False):
@@ -339,16 +339,11 @@ def main():
     config.write(_file, False)
     _file.seek(0)
     panel = Panel.fit(
-        Syntax(
-            _file.read(),
-            "ini",
-            theme="ansi_dark",
-            line_numbers=True
-        ),
+        Syntax(_file.read(), "ini", theme="ansi_dark", line_numbers=True),
         title=f"[bold]{service_name}.service[/]",
         title_align="center",
         subtitle="Saving to " + str(save_to),
-        subtitle_align="center"
+        subtitle_align="center",
     )
     console.print(panel)
     if Confirm.ask("Save?"):
