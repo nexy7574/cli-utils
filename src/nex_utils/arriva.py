@@ -158,55 +158,55 @@ def check_arriva_wifi_connection(yes: bool = False):
     return True
 
 
-def vpn_list():
-    _vpns = []
-    _dir = Path("/etc/wireguard")
-    if os.access(_dir, os.R_OK):
-        for f in _dir.iterdir():
-            if f.name.endswith(".conf"):
-                _vpns.append(f.name[:-5])
-    _vpns = _vpns or ["Laptop", "Laptop-Pi", "Laptop-Internal", "Laptop-SS"]
-    return _vpns
-
-
-def kill_vpns():
-    with console.status("Bringing down VPN (if its up)"):
-        for vpn in vpn_list():
-            subprocess.run(("wg-quick", "down", vpn), capture_output=True)
-
-
-def atomically_enable_vpn(name: str):
-    with console.status(f"Starting VPN {name!r}"):
-        x = subprocess.run(("wg-quick", "up", name), capture_output=True)
-    if x.returncode != 0:
-        console.log(f"[red]Failed to start VPN {name!r}.")
-        console.log("[red]Attempting to reverse VPN connection")
-        with console.status("Reversing VPN connection"):
-            x = subprocess.run(("wg-quick", "down", name))
-        if x.returncode != 0:
-            console.log("[red]Failed to reverse VPN connection.")
-            console.log("[red]Please check your VPN configuration.")
-            return False
-        else:
-            console.log(f"[yellow]:warning: VPN connection {name!r} reversed.")
-            return False
-    else:
-        console.log("[green]:white_check_mark: VPN connection started.")
-        console.log("[dim]Checking VPN connectivity...")
-        response = do_request(requests, "https://httpbin.org/anything", "httpbin")
-        if not response or response.status_code != 200:
-            console.log("[red]Failed to connect to internet - are you connected to wifi?")
-            console.log("[red]Attempting to reverse VPN connection")
-            with console.status("Reversing VPN connection"):
-                x = subprocess.run(("wg-quick", "down", "Laptop"), capture_output=True)
-            if x.returncode != 0:
-                console.log("[red]Failed to reverse VPN connection.")
-                console.log("[red]Please check your VPN configuration.")
-                return False
-            else:
-                console.log("[yellow]:warning: VPN connection reversed.")
-                return False
-    return True
+# def vpn_list():
+#     _vpns = []
+#     _dir = Path("/etc/wireguard")
+#     if os.access(_dir, os.R_OK):
+#         for f in _dir.iterdir():
+#             if f.name.endswith(".conf"):
+#                 _vpns.append(f.name[:-5])
+#     _vpns = _vpns or ["Laptop", "Laptop-Pi", "Laptop-Internal", "Laptop-SS"]
+#     return _vpns
+#
+#
+# def kill_vpns():
+#     with console.status("Bringing down VPN (if its up)"):
+#         for vpn in vpn_list():
+#             subprocess.run(("wg-quick", "down", vpn), capture_output=True)
+#
+#
+# def atomically_enable_vpn(name: str):
+#     with console.status(f"Starting VPN {name!r}"):
+#         x = subprocess.run(("wg-quick", "up", name), capture_output=True)
+#     if x.returncode != 0:
+#         console.log(f"[red]Failed to start VPN {name!r}.")
+#         console.log("[red]Attempting to reverse VPN connection")
+#         with console.status("Reversing VPN connection"):
+#             x = subprocess.run(("wg-quick", "down", name))
+#         if x.returncode != 0:
+#             console.log("[red]Failed to reverse VPN connection.")
+#             console.log("[red]Please check your VPN configuration.")
+#             return False
+#         else:
+#             console.log(f"[yellow]:warning: VPN connection {name!r} reversed.")
+#             return False
+#     else:
+#         console.log("[green]:white_check_mark: VPN connection started.")
+#         console.log("[dim]Checking VPN connectivity...")
+#         response = do_request(requests, "https://httpbin.org/anything", "httpbin")
+#         if not response or response.status_code != 200:
+#             console.log("[red]Failed to connect to internet - are you connected to wifi?")
+#             console.log("[red]Attempting to reverse VPN connection")
+#             with console.status("Reversing VPN connection"):
+#                 x = subprocess.run(("wg-quick", "down", "Laptop"), capture_output=True)
+#             if x.returncode != 0:
+#                 console.log("[red]Failed to reverse VPN connection.")
+#                 console.log("[red]Please check your VPN configuration.")
+#                 return False
+#             else:
+#                 console.log("[yellow]:warning: VPN connection reversed.")
+#                 return False
+#     return True
 
 
 @click.command()
@@ -231,7 +231,7 @@ def main(yes: bool, vpn_profile: str, verbose: bool, no_vpn: bool, no_latency_te
 
     --vpn-profile: only really useful if --yes is present - uses this VPN profile name instead of asking for it.
     """
-    kill_vpns()
+    # kill_vpns()
     okay = check_arriva_wifi_connection(yes)
     if not okay:
         return
@@ -303,7 +303,8 @@ def main(yes: bool, vpn_profile: str, verbose: bool, no_vpn: bool, no_latency_te
             console.log("HTTPBin data:")
             console.print_json(data=response.json(), indent=4)
         if no_vpn is False and (yes or Confirm.ask("Would you like to start a VPN?", console=console)):
-            vpns = vpn_list()
+            # vpns = vpn_list()
+            vpns = []
             try:
                 if vpn_profile == "%ASK%":
                     choice = Prompt.ask(
@@ -317,7 +318,8 @@ def main(yes: bool, vpn_profile: str, verbose: bool, no_vpn: bool, no_latency_te
             except KeyboardInterrupt:
                 console.log("[i dim]VPN Activation cancelled")
             else:
-                success = atomically_enable_vpn(choice)
+                # success = atomically_enable_vpn(choice)
+                success = False
                 if success:
                     console.log("[green]:white_check_mark: You should now have access to the internet over VPN.")
                     console.log("HTTPBin data:")
