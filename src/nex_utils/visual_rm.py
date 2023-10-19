@@ -46,7 +46,7 @@ def partition_objects(obj: list[Path]) -> tuple[list[Path], list[Path]]:
     return files, directories
 
 
-@click.command("vrm")
+@click.command()
 @click.option(
     "--dry",
     "-d",
@@ -181,9 +181,9 @@ def main(
                     if not Confirm.ask(f"Delete {fp!r}?"):
                         progress.advance(data["task"])
                         continue
-                if verbose:
-                    console.print(f"Deleting {fp!r}")
                 if not dry:
+                    if verbose:
+                        console.print(f"Deleting {fp!r}")
                     try:
                         if fp.is_dir():
                             fp.rmdir()
@@ -200,6 +200,8 @@ def main(
                         elif errors == "error":
                             raise e
                 else:
+                    if verbose:
+                        console.print(f"Would delete {fp!r}")
                     time.sleep(1 / 3)
                 progress.advance(data["task"])
 
