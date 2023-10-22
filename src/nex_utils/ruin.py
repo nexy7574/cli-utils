@@ -88,10 +88,11 @@ def main(
     """
     Ruins different parts of a file. Not much use here, however can be used to create cool effects with media.
 
-    Ruin methods:\n
-        * scramble: Overwrites chunks with random data from /dev/urandom.\n
-        * reverse: Reverses chunks (e.g. text goes from "abc[def]g" to "abc[fed]g").\n
-        * zero: Overwrites chunks with null bytes.\n
+    Ruin methods:
+    
+        * scramble: Overwrites chunks with random data from /dev/urandom.
+        * reverse: Reverses chunks (e.g. text goes from "abc[def]g" to "abc[fed]g").
+        * zero: Overwrites chunks with null bytes.
 
     """
     console = get_console()
