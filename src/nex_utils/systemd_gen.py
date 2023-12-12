@@ -30,6 +30,8 @@ ABOUT = textwrap.dedent(
     
     Note that this tool does not handle complex cases, and only has a few of the common customisation options.
     You are welcome to edit the service files after generation. After generation, they are yours.
+    
+    nexcli is licensed via GPLv3. check the LICENSE file for more information.
     """
 )
 
@@ -190,14 +192,7 @@ def enable_service(user: bool, service_name: str, start: bool = False):
         start_service(user, service_name)
 
 
-@click.command()
-def main():
-    config = ConfigParser()
-    config.optionxform = str
-    config["Unit"] = {}
-    config["Service"] = {}
-    config["Install"] = {}
-
+def display_banner():
     console.clear()
     panel = Panel(
         Align(ABOUT, "center"),
@@ -207,6 +202,22 @@ def main():
         style="white on black",
     )
     console.print(panel)
+
+
+@click.group()
+def main():
+    pass
+
+
+@main.command()
+def create_service():
+    """Creates a new service."""
+    config = ConfigParser()
+    config.optionxform = str
+    config["Unit"] = {}
+    config["Service"] = {}
+    config["Install"] = {}
+    display_banner()
 
     console.print(
         ":information_source: There are two types of services: user, and system.\n"
@@ -360,6 +371,153 @@ def main():
             start_service(user_mode == "user", service_name)
     else:
         console.print("Aborting.", style="red")
+
+
+@main.command()
+@click.option(
+    "--cron",
+    "-C",
+    type=str,
+    help="Imports from a cron-style pattern. See https://crontab.guru/ for help.",
+    required=False
+)
+@click.argument("service", required=False)
+def create_timer(cron: str, service: typing.Optional[str]):
+    """
+    Creates a timer for a service.
+    
+    This only supports realtime timers, since timers are frequently used as a better crontab.
+    """
+    config = ConfigParser()
+    config.optionxform = str
+
+    display_banner()
+
+    ud = pathlib.Path.home() / ".config" / "systemd" / "user"
+    sd = pathlib.Path("/etc/systemd/system")
+
+    while not service:
+        console.print("Available services:")
+        ROOT_OKAY = os.getuid() == 0
+        for service in ud.glob("*.service"):
+            console.print(f"* {service.stem}", style="green")
+        for service in sd.glob("*.service"):
+            console.print(f"* {service.stem}", style="green" if ROOT_OKAY else "red i dim")
+        service = Prompt.ask("Please enter the name of the service you want to create a timer for")
+        if service not in [x.stem for x in ud.glob("*.service")] + [x.stem for x in sd.glob("*.service")]:
+            console.print(f"[red]:x: {service!r} was not found.")
+            service = None
+            continue
+        break
+    else:
+        if not service.endswith(".service"):
+            service += ".service"
+
+    if (ud / service).exists():
+        target = ud / service.replace(".service", ".timer")
+        user = True
+    elif (sd / service).exists():
+        target = sd / service.replace(".service", ".timer")
+        user = False
+    else:
+        console.print(f"Could not find {service!r} in {ud} or {sd}.")
+        sys.exit(1)
+    
+    config["Unit"] = {
+        "Description": f"Timer that automatically triggers {service}, created by systemd-gen.",
+        "Documentation": " ".join(
+            ("https://github.com/nexy7574/cli-utils/blob/master/src/nex_utils/systemd_gen.py",
+            "https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html")
+        )
+    }
+    config["Timer"] = {}
+    config["Install"] = {"WantedBy": "timers.target"}
+
+    if target.exists():
+        console.print(f"[red]:x: {target} already exists.")
+        if not Confirm.ask("Overwrite?", default=False):
+            sys.exit(1)
+    
+    try:
+        target.touch()
+    except PermissionError as e:
+        console.print(f":x: Failed to write to file {target} - Permission denied ({e!r})")
+        sys.exit(1)
+    except OSError as e:
+        console.print(":x: Failed to create timer file: %r" % e)
+        sys.exit(1)
+
+
+    on_calendar_format = "{weekday} {year}-{month}-{day} {hour}:{minute}:{second}"
+    if not cron:
+        cron = console.prompt(
+            "Please input a cron-style timer (minute hour day(month) month day(week), e.g. 0 * * * *), "
+            "or one of 'hourly', 'daily', 'weekly', 'monthly', 'yearly'."
+        )
+    if cron.startswith("@"):
+        ocf = cron[1:]
+    else:
+        try:
+            minute, hour, calendar_day, month, weekday = cron.split()
+            if weekday in map(str, range(0, 7)):
+                cdi = int(weekday)
+                if cdi > 7:
+                    cdi = 7 - cdi
+                weekday = [
+                    "Mon",
+                    "Tue",
+                    "Wed",
+                    "Thu",
+                    "Fri",
+                    "Sat",
+                    "Sun"
+                ][cdi]
+            elif weekday == "*" or weekday not in map(str, range(1, 31)):
+                on_calendar_format = on_calendar_format[10:]
+        except ValueError as e:
+            console.print(f"[red]:x: {e}")
+            sys.exit(1)
+        ocf = on_calendar_format.format(
+            weekday=weekday,
+            year="*",
+            month=month,
+            day=calendar_day,
+            hour=hour,
+            minute=minute,
+            second="0",
+        )
+        console.print(
+            "Resolved cron pattern %r to %r ([code]%s[/])" % (
+                cron,
+                ocf,
+                on_calendar_format.replace("{", "").replace("}", "")
+            )
+        )
+    
+    config["Timer"]["OnCalendar"] = ocf
+    config["Timer"]["Persistent"] = str(
+        Confirm.ask(
+            "Do you want this timer to be persistent (i.e. run as soon as it can in the event of failure such as power)",
+            default=True
+        )
+    )
+    config["Timer"]["Unit"] = service
+    with target.open("w") as tfd:
+        config.write(tfd, False)
+    console.print(target.read_text(), markup=False)
+    console.print(f"\N{white heavy check mark} Wrote timer to {target}.")
+    
+    with console.status("Reloading daemon (this will take a few seconds)..."):
+        reload_daemon(user)
+
+
+    if Confirm.ask("Do you want to start the service now?"):
+        if Confirm.ask("Do you want to start the service at boot?"):
+            enable_service(user, service.replace(".service", ".timer"), start=True)
+        start_service(user, service.replace(".service", ".timer"))
+    else:
+        if Confirm.ask("Do you want to start the service at boot?"):
+            enable_service(user, service.replace(".service", ".timer"), start=False)
 
 
 if __name__ == "__main__":
