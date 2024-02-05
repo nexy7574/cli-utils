@@ -12,8 +12,9 @@ from rich.progress import track
 from rich.prompt import Confirm, IntPrompt, Prompt
 
 from .utils import ensure_upnp_utils as utils
+from .utils.generic_shell import config_dir
 
-CONFIG_FILE = Path.home() / ".config" / "cli-utils" / "ensure_upnp.json"
+CONFIG_FILE = config_dir() / "ensure_upnp.json"
 CONSOLE = get_console()
 
 
