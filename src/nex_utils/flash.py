@@ -10,7 +10,7 @@ import os
 import click
 from pathlib import Path
 from rich.prompt import Confirm
-from rich.progress import *
+from rich.progress import Progress, TextColumn, BarColumn, MofNCompleteColumn, TimeRemainingColumn, TransferSpeedColumn
 
 
 @click.command()
@@ -28,11 +28,11 @@ from rich.progress import *
     default=True,
     help="Buffer the input into RAM. This may be useful if your IO speed is slow."
 )
-@click.option(
-    "--verify/--skip-verify", "-V/-SV",
-    default=True,
-    help="Verify the written data after writing."
-)
+# @click.option(
+#     "--verify/--skip-verify", "-V/-SV",
+#     default=True,
+#     help="Verify the written data after writing."
+# )
 def main(
         zero_first: bool,
         buffer: bool,
