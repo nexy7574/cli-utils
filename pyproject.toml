@@ -47,6 +47,7 @@ cf-dns = "nex_utils.cf_dns:main"
 file-gen = "nex_utils.filegen:main"
 filegen = "nex_utils.filegen:main"
 download = "nex_utils.download:main"
+flash = "nex_utils.flash:main"
 
 [tool.setuptools_scm]
 write_to = "src/nex_utils/__version__.py"

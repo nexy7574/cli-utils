@@ -63,6 +63,7 @@ Bear in mind that, if you do not add the scripts to root's PATH, the automatic e
 | [wg_manager.py](/scripts/wg_manager.py)                         | `wg-manager`                  | python 3.10+ | A tool to manage wireguard VPN connections. (WIP)                                                                                                                                                     |
 | [asus_fx504_fan_control.py](/scripts/asus_fx504_fan_control.py) | `afan`                        | python 3.10+ | A tool to control the fan boost mode on my laptop (ASUS FX504GD). Probably not universally useful                                                                                                     |
 | [filegen.py](/scripts/filegen.py)                               | `filegen`                     | python 3.10+ | A tool to generate files of a given size.                                                                                                                                                             |
+| [flash.py](/scripts/flash.py)                                   | `flash`                       | python 3.12+ | A tool to flash a file to a device.                                                                                                                                                                   |
 
 ### "Version"
 In the above table, "Version" refers to the python version that the script was written in.
