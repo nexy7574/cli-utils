@@ -4,13 +4,14 @@ This script allows you to visually flash any file (usually disk images) to a dri
 Basically, `dd`, but with a colourful progress bar, and a few utilities and failsafe things.
 """
 import io
+import time
 
 import rich
 import os
 import click
 from pathlib import Path
 from rich.prompt import Confirm
-from rich.progress import Progress, TextColumn, BarColumn, MofNCompleteColumn, TimeRemainingColumn, TransferSpeedColumn
+from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, TransferSpeedColumn, DownloadColumn
 
 
 @click.command()
@@ -59,48 +60,73 @@ def main(
         TextColumn("[bold blue]{task.description}"),
         BarColumn(bar_width=None),
         "[progress.percentage]{task.percentage:>3.1f}%",
-        MofNCompleteColumn(),
+        DownloadColumn(),
         TimeRemainingColumn(),
         TransferSpeedColumn(),
     )
 
+    console.clear()
     with progress:
         task1 = progress.add_task("Writing '%s' to '%s'" % (source, target), total=source_size, start=False)
-        if zero_first:
-            task2 = progress.add_task("Zeroing '%s'" % target)
-            zero = b"\0" * block_size
-            with target.open("wb") as f:
-                written = 0
-                while True:
-                    try:
-                        written += f.write(zero)
-                    except OSError:
-                        break
-                    progress.update(task2, advance=written-1, total=written)
-            progress.update(task2, completed=written)
 
         if buffer:
             task3 = progress.add_task("Buffering '%s' into memory" % source, total=source_size)
             source_2 = io.BytesIO()
             with source.open("rb") as f:
                 for chunk in iter(lambda: f.read(block_size), b""):
-                    source_2.write(chunk)
+                    try:
+                        source_2.write(chunk)
+                    except KeyboardInterrupt:
+                        console.clear()
+                        rich.print(
+                            "[red]Cancelled buffering. [b]Data has [green ul]NOT[/] been overwritten."
+                        )
+                        return
                     progress.update(task3, advance=len(chunk))
             source_2.seek(0)
             source = source_2
+            source.open = lambda _: source
 
-        with open(source, "rb") as src:
-            with target.open("wb") as tgt:
-                progress.update(task1, total=source_size, completed=0, start=True)
+        if zero_first:
+            task2 = progress.add_task("Zeroing '%s'" % target)
+            zero = b"\0" * block_size
+            with target.open("wb") as f:
+                total_written = 0
                 while True:
                     try:
-                        data = src.read(block_size)
-                        if not data:
-                            break
-                        written = tgt.write(data)
-                        progress.update(task1, advance=written)
+                        written = f.write(zero)
+                        total_written += written
                     except OSError:
                         break
+                    except KeyboardInterrupt:
+                        rich.print("[red]Cancelled zeroing. [b]Data has been overwritten.[/]. This may take a minute.")
+                        console.clear()
+                        return
+                    progress.update(task2, advance=written, total=total_written + block_size)
+            progress.update(task2, completed=written)
+
+        try:
+            rich.print("[red]:warning: Writing to %s in 5 seconds (hit ctrl+c to cancel)..." % target)
+            time.sleep(5)
+        except KeyboardInterrupt:
+            rich.print("[red]Cancelled writing. [b]Data has [green ul]NOT[/] been overwritten.[/]")
+            return
+        try:
+            with source.open("rb") as src:
+                with target.open("wb") as tgt:
+                    progress.update(task1, total=source_size, completed=0, start=True)
+                    while True:
+                        try:
+                            data = src.read(block_size)
+                            if not data:
+                                break
+                            written = tgt.write(data)
+                            progress.update(task1, advance=written)
+                        except OSError:
+                            break
+        except OSError as e:
+            rich.print(f"[red]Error while writing: {e}")
+            return
     with console.status("Flushing writes to physical disk (this may take some time)", spinner="dots"):
         os.sync()
     rich.print("[green]Done writing.")
