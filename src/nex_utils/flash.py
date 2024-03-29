@@ -114,7 +114,7 @@ def main(
         try:
             with source.open("rb") as src:
                 with target.open("wb") as tgt:
-                    progress.update(task1, total=source_size, completed=0, start=True)
+                    progress.start_task(task1)
                     while True:
                         try:
                             data = src.read(block_size)
