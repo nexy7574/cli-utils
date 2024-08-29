@@ -48,6 +48,7 @@ file-gen = "nex_utils.filegen:main"
 filegen = "nex_utils.filegen:main"
 download = "nex_utils.download:main"
 flash = "nex_utils.flash:main"
+speedtest = "nex_utils.speedtest:main"
 
 [tool.setuptools_scm]
 write_to = "src/nex_utils/__version__.py"

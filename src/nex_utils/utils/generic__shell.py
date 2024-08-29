@@ -13,11 +13,7 @@ __all__ = ("command_exists", "is_windows", "home", "temp_dir", "stderr", "config
 
 def command_exists(command: str) -> bool:
     """Checks if a command is installed & usable."""
-    try:
-        subprocess.run(["which", command], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        return False
-    else:
+    if shutil.which(command) is not None:
         return True
 
 
@@ -40,7 +36,7 @@ def temp_dir() -> Path:
 
 
 def config_dir() -> Path:
-    directory = appdirs.user_config_dir("cli-utils", "nexy7574")
+    directory = Path(appdirs.user_config_dir("cli-utils", "nexy7574"))
 
     if not directory.exists():
         directory.mkdir(0o711, True, True)
@@ -54,6 +50,6 @@ def cache_dir() -> Path:
 
     :return:
     """
-    directory = appdirs.user_cache_dir("cli-utils", "nexy7574")
+    directory = Path(appdirs.user_cache_dir("cli-utils", "nexy7574"))
     directory.mkdir(0o711, True, True)
     return directory.resolve()
