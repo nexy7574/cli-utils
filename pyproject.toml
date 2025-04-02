@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = "nexcli"
 description = "A collection of CLI utils that I (nexy7574) made & use"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10,<3.14"
 license = { text = "GNU GPLv3" }
 authors = [
     {name = "Nexus", email = "packages@nexy7574.co.uk"}
@@ -49,6 +49,7 @@ filegen = "nex_utils.filegen:main"
 download = "nex_utils.download:main"
 flash = "nex_utils.flash:main"
 speedtest = "nex_utils.speedtest:main"
+upgrade-matrix-room = "nex_utils.matrix_room_upgrade:main"
 
 [tool.setuptools_scm]
 write_to = "src/nex_utils/__version__.py"

@@ -11,3 +11,4 @@ httpx[http2,socks,brotli]~=0.27.0
 click-aliases~=1.0
 toml; python_version < "3.11"
 appdirs~=1.4
+matrix-nio~=0.25
