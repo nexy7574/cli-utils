@@ -49,7 +49,7 @@ filegen = "nex_utils.filegen:main"
 download = "nex_utils.download:main"
 flash = "nex_utils.flash:main"
 speedtest = "nex_utils.speedtest:main"
-upgrade-matrix-room = "nex_utils.matrix_room_upgrade:main"
+upgrade-matrix-room = "nex_utils.matrix_upgrade_room:main"
 
 [tool.setuptools_scm]
 write_to = "src/nex_utils/__version__.py"

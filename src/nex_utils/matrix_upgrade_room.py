@@ -217,8 +217,8 @@ def main(homeserver: str, access_token: str, room_id: str) -> None:
             request["initial_state"].append(evt)
 
     if custom_room_id:
-        request["room_id"] = custom_room_id
-        request["fi.mau.room_id"] = custom_room_id.split(":", 1)[0][1:]
+        request["room_id"] = custom_room_id.split(":", 1)[0][1:]
+        request["fi.mau.room_id"] = custom_room_id
 
     reason = click.prompt("Why are you upgrading this room?", type=str)
 
